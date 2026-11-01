@@ -99,11 +99,19 @@ inline const char* get_reg_info(const char* regname, bitrange_t* bitrange)
 }
 inline bool is_funcarg_off(const func_t* pfn, uval_t frameoff)
 {
+	#if IDA_SDK_VERSION >= 940
+	return pfn != nullptr && get_ph()->is_funcarg_off_ea(pfn->start_ea, frameoff);
+#else
 	return get_ph()->is_funcarg_off(pfn, frameoff);
+#endif
 }
 inline sval_t lvar_off(const func_t* pfn, uval_t frameoff)
 {
+	#if IDA_SDK_VERSION >= 940
+	return pfn != nullptr ? get_ph()->lvar_off_ea(pfn->start_ea, frameoff) : 0;
+#else
 	return get_ph()->lvar_off(pfn, frameoff);
+#endif
 }
 #define ph (*get_ph())
 #define is_idaqt is_idaq()
@@ -1365,5 +1373,46 @@ class RdGlobalInfo
 };
 
 } // namespace idaplugin
+// IDA 9.4 address-based APIs; older SDK builds keep their existing entry points.
+#if IDA_SDK_VERSION >= 940
+inline ssize_t gd_func_cmt(qstring* out, const func_t* f, bool repeatable) { return f != nullptr ? get_func_cmt_ea(out, f->start_ea, repeatable) : -1; }
+inline bool gd_set_func_cmt(const func_t* f, const char* text, bool repeatable) { return f != nullptr && set_func_cmt_ea(f->start_ea, text, repeatable); }
+inline ea_t gd_func_ranges(rangeset_t* out, const func_t* f) { return f != nullptr ? get_func_ranges_ea(out, f->start_ea) : BADADDR; }
+inline bool gd_func_frame(tinfo_t* out, const func_t* f) { return f != nullptr && get_func_frame_ea(out, f->start_ea); }
+inline asize_t gd_frame_size(const func_t* f) { return f != nullptr ? get_frame_size_ea(f->start_ea) : 0; }
+inline int gd_frame_retsize(const func_t* f) { return f != nullptr ? get_frame_retsize_ea(f->start_ea) : 0; }
+inline ea_t gd_frame_off_args(const func_t* f) { return f != nullptr ? frame_off_args_ea(f->start_ea) : BADADDR; }
+inline ea_t gd_frame_off_retaddr(const func_t* f) { return f != nullptr ? frame_off_retaddr_ea(f->start_ea) : BADADDR; }
+inline ea_t gd_frame_off_savregs(const func_t* f) { return f != nullptr ? frame_off_savregs_ea(f->start_ea) : BADADDR; }
+inline ea_t gd_frame_off_lvars(const func_t* f) { return f != nullptr ? frame_off_lvars_ea(f->start_ea) : BADADDR; }
+inline sval_t gd_spd(const func_t* f, ea_t ea) { return get_func_spd(f != nullptr ? f->start_ea : BADADDR, ea); }
+inline ssize_t gd_segm_name(qstring* out, const segment_t* seg, int flags=0) { return seg != nullptr ? get_segment_name(out, seg->start_ea, flags) : -1; }
+inline ssize_t gd_segm_class(qstring* out, const segment_t* seg) { return seg != nullptr ? get_segment_class(out, seg->start_ea) : -1; }
+inline ssize_t gd_segment_cmt(qstring* out, const segment_t* seg, bool repeatable) { return seg != nullptr ? get_segment_cmt_by_ea(out, seg->start_ea, repeatable) : -1; }
+inline bool gd_del_frame(const func_t* f) { return f != nullptr && del_frame_ea(f->start_ea); }
+inline bool gd_add_frame(const func_t* f, sval_t locals, ushort saved, asize_t args) { return f != nullptr && add_frame_ea(f->start_ea, locals, saved, args); }
+inline bool gd_set_frame_size(const func_t* f, asize_t locals, ushort saved, asize_t args) { return f != nullptr && set_frame_size_ea(f->start_ea, locals, saved, args); }
+inline bool gd_define_stkvar(const func_t* f, const char* name, sval_t off, const tinfo_t& ti, const value_repr_t* repr) { return f != nullptr && define_stkvar_ea(f->start_ea, name, off, ti, repr); }
+#else
+#define gd_func_cmt get_func_cmt
+#define gd_set_func_cmt set_func_cmt
+#define gd_func_ranges get_func_ranges
+#define gd_func_frame get_func_frame
+#define gd_frame_size get_frame_size
+#define gd_frame_retsize get_frame_retsize
+#define gd_frame_off_args frame_off_args
+#define gd_frame_off_retaddr frame_off_retaddr
+#define gd_frame_off_savregs frame_off_savregs
+#define gd_frame_off_lvars frame_off_lvars
+#define gd_spd get_spd
+#define gd_segm_name get_segm_name
+#define gd_segm_class get_segm_class
+#define gd_segment_cmt get_segment_cmt
+#define gd_del_frame del_frame
+#define gd_add_frame add_frame
+#define gd_set_frame_size set_frame_size
+#define gd_define_stkvar define_stkvar
+#endif
+
 
 #endif

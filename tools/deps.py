@@ -174,8 +174,10 @@ def apply_ghidra_warning_patches(decompile_dir: Path, version: str) -> None:
         updated = original
         for old, new, expected_count in replacements:
             actual_count = updated.count(old)
-            if actual_count == 0 and updated.count(new) == expected_count:
-                continue  # Already patched; avoid rewriting files on subsequent builds.
+            if new and updated.count(new) == expected_count:
+                continue  # Already patched, including replacements that retain the old prefix.
+            if not new and actual_count == 0:
+                continue  # Already removed the unused statement.
             if actual_count != expected_count:
                 raise SystemExit(
                     f"Unexpected Ghidra 12.2 source layout in {path}: "

@@ -3460,7 +3460,8 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	void IdaCallback::preloadBatchMappedSymbols()
 	{
 		for (std::map<ea_t, ImportInfo>::iterator it = imports.begin(); it != imports.end(); ++it) {
-			MappedSymbolInfo msi = { KIND_EXTERNALREFERENCE };
+			MappedSymbolInfo msi{};
+			msi.kind = KIND_EXTERNALREFERENCE;
 			msi.entryPoint = it->first;
 			msi.readonly = false;
 			msi.volatil = false;
@@ -3474,7 +3475,8 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			func_t* f = getn_func((int)i);
 			if (f == nullptr || imports.find(f->start_ea) != imports.end())
 				continue;
-			MappedSymbolInfo msi = { KIND_FUNCTION };
+			MappedSymbolInfo msi{};
+			msi.kind = KIND_FUNCTION;
 			msi.entryPoint = f->start_ea;
 			msi.ranges = getFunctionRanges(f, "ram");
 			msi.size = msi.ranges.empty() ? f->size() :
@@ -3499,7 +3501,8 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				continue;
 
 			flags_t fl = get_flags(ea);
-			MappedSymbolInfo msi = { KIND_HOLE };
+			MappedSymbolInfo msi{};
+			msi.kind = KIND_HOLE;
 			if (is_data(fl) || (is_unknown(fl) && is_mapped(ea))) {
 				msi.kind = KIND_DATA;
 				unsigned long long size = is_unknown(fl) ? 1 : get_item_size(ea);
@@ -3667,7 +3670,6 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		if (di->decompiledFunction == nullptr) {
 			std::map<ea_t, size_t> entries;
 			num = get_entry_qty();
-			int successes = 0;
 			for (size_t i = 0; i < num; i++) {
 				std::string disp;
 				ea_t ea = get_entry(get_entry_ordinal(i)); //qstring qs; get_entry_name(&qs, i);

@@ -3039,7 +3039,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		TRACE_MSG("analysis header ref types=" << std::dec << usedRefTypes.size() << "\n");
 
 		std::map<std::string, bool> isDependee;
-		std::for_each(usedTypes.begin(), usedTypes.end(), [&isDependee, &usedRefTypes](std::pair<std::string, bool> it) { buildDependents(it.first, usedRefTypes, isDependee); });
+		std::for_each(usedTypes.begin(), usedTypes.end(), [&isDependee, &usedRefTypes, this](std::pair<std::string, bool> it) { buildDependents(it.first, usedRefTypes, isDependee); });
 		isDependee.clear(); //more usedTypes can be added here but it is not a problem as the real reference ones previously search and later filter applied
 		std::for_each(usedTypes.begin(), usedTypes.end(), [&isDependee, this](std::pair<std::string, bool> it) { buildDependents(it.first, usedTypes, isDependee); });
 		std::for_each(usedTypes.begin(), usedTypes.end(), [](std::pair<const std::string, bool>& it) { it.second = true; }); //transform cannot mutate map but second can change with reference and const first

@@ -162,14 +162,14 @@ struct SymInfo
 {
 	ParamInfo pi;
 	SizedAddrInfo addr; //"ram", "stack", "join" but then need offsets for something like piece1="register:0x8:4" piece2="register:0x0:4"
-	int argIndex = -1; //-1 if local variable
+	int argIndex = 0; //-1 if local variable
 	RangeInfo range = {}; //for register space only with locals (for arguments, will automatically specify one less than the start address of the function)
 };
 struct FuncProtoInfo
 {
 	bool isInline = false;
 	bool isNoReturn = false;
-	unsigned long long extraPop = ~0ULL; //-1 for unknown
+	unsigned long long extraPop = 0; //-1 for unknown
 	std::string model; //unknown, default, __fastcall, __stdcall, __cdecl, __thiscall, __vectorcall, __pascal
 	bool dotdotdot = false;
 	bool customStorage = false;

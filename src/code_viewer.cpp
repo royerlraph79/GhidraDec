@@ -559,7 +559,7 @@ bool idaapi GhidraDec::insertCurrentFunctionComment()
 	}
 
 	qstring qCmt;
-	get_func_cmt(&qCmt, fnc, false);
+	gd_func_cmt(&qCmt, fnc, false);
 
 	qstring buff;
 	if (ask_text(
@@ -569,7 +569,7 @@ bool idaapi GhidraDec::insertCurrentFunctionComment()
 			"Please enter function comment (max %d characters)",
 			MAXSTR))
 	{
-		set_func_cmt(fnc, buff.c_str(), false);
+		gd_set_func_cmt(fnc, buff.c_str(), false);
 		decompInfo->decompiledFunction = fnc;
 		ShowOutput show(decompInfo);
 		show.execute();

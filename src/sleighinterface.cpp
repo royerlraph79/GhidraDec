@@ -724,8 +724,8 @@ static bool isM68kIllegalTrap(DecompileCallback* callback, const std::string& sl
 	const AddrInfo& addr)
 {
 	if (callback == nullptr || addr.space != "ram" ||
-		sleighfile.find("68000") == std::string::npos &&
-		sleighfile.find("68040") == std::string::npos)
+		(sleighfile.find("68000") == std::string::npos &&
+		sleighfile.find("68040") == std::string::npos))
 		return false;
 	uchar bytes[2] = { 0, 0 };
 	return callback->getBytes(bytes, 2, addr) == 2 && bytes[0] == 0x4a && bytes[1] == 0xfc;
@@ -3005,13 +3005,13 @@ std::vector<uchar> DecompInterface::readResponse() {
 						std::vector<CommentInfo> comments;
 						callback->getComments(addr, comments);
 						for (int i = 0; i < comments.size(); i++) {
-							if (comments[i].type == "header" && (f & comment_type::header) != 0 ||
-								comments[i].type == "warning" && (f & comment_type::warning) != 0 ||
-								comments[i].type == "warningheader" &&
-									(f & comment_type::warningheader) != 0 ||
-								comments[i].type == "user1" && (f & comment_type::user1) != 0 ||
-								comments[i].type == "user2" && (f & comment_type::user2) != 0 ||
-								comments[i].type == "user3" && (f & comment_type::user3) != 0) {
+							if ((comments[i].type == "header" && (f & comment_type::header) != 0) ||
+								(comments[i].type == "warning" && (f & comment_type::warning) != 0) ||
+								(comments[i].type == "warningheader" &&
+									(f & comment_type::warningheader) != 0) ||
+								(comments[i].type == "user1" && (f & comment_type::user1) != 0) ||
+								(comments[i].type == "user2" && (f & comment_type::user2) != 0) ||
+								(comments[i].type == "user3" && (f & comment_type::user3) != 0)) {
 								ostringstream commentesc;
 								xml_escape(commentesc, comments[i].text.c_str());
 								commentStr += "<comment type=\"" + comments[i].type + "\">\n"

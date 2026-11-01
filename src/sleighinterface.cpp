@@ -1124,25 +1124,18 @@ uchar DecompInterface::readToBurst() {
 		do {
 			cur = read();
 		} while (cur > 0);
-		if (cur == -1) {
-			break;
-		}
+
 		do {
 			cur = read();
 		} while (cur == 0);
 		if (cur == 1) {
 			cur = read();
-			if (cur == -1) {
-				break;
-			}
+
 			return cur;
 		}
-		if (cur == -1) {
-			break;
-		}
+
 	}
 	throw DecompError("Decompiler process died");
-	return -1;
 }
 
 uchar DecompInterface::readToBuffer(std::vector<uchar>& buf, size_t maxBytes) {
@@ -1156,9 +1149,7 @@ uchar DecompInterface::readToBuffer(std::vector<uchar>& buf, size_t maxBytes) {
 			buf.push_back((uchar)cur);
 			cur = read();
 		}
-		if (cur == -1) {
-			break;
-		}
+
 		do {
 			cur = read();
 		} while (cur == 0);
@@ -1168,12 +1159,9 @@ uchar DecompInterface::readToBuffer(std::vector<uchar>& buf, size_t maxBytes) {
 				return cur;
 			}
 		}
-		if (cur == -1) {
-			break;
-		}
+
 	}
 	throw DecompError("Decompiler process died");
-	return -1;
 }
 
 std::string DecompInterface::readQueryString() {
@@ -4500,7 +4488,7 @@ void DecompInterface::setMaxResultSize(int maxResultSizeMBytes) {
 }
 
 void DecompInterface::setShowNamespace(bool showNamespace) {
-	showNamespace = showNamespace;
+	this->showNamespace = showNamespace;
 	//callback.setShowNamespace(showNamespace);
 }
 
@@ -4577,7 +4565,7 @@ bool DecompInterface::setSimplificationStyle(std::string actionstring) {
 	try {
 		//verifyProcess();
 		std::vector<uchar> buf = sendCommand2Params("setAction", actionstring, "");
-		return std::string(buf.begin(), buf.end()).c_str() == "t";
+		return std::string(buf.begin(), buf.end()) == "t";
 	}
 	catch (DecompError& /*e*/) {
 		// don't care

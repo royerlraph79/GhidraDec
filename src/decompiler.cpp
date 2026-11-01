@@ -3039,7 +3039,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		TRACE_MSG("analysis header ref types=" << std::dec << usedRefTypes.size() << "\n");
 
 		std::map<std::string, bool> isDependee;
-		std::for_each(usedTypes.begin(), usedTypes.end(), [&isDependee, &usedRefTypes, this](std::pair<std::string, bool> it) { buildDependents(it.first, usedRefTypes, isDependee); });
+		std::for_each(usedTypes.begin(), usedTypes.end(), [&isDependee, &usedRefTypes](std::pair<std::string, bool> it) { buildDependents(it.first, usedRefTypes, isDependee); });
 		isDependee.clear(); //more usedTypes can be added here but it is not a problem as the real reference ones previously search and later filter applied
 		std::for_each(usedTypes.begin(), usedTypes.end(), [&isDependee, this](std::pair<std::string, bool> it) { buildDependents(it.first, usedTypes, isDependee); });
 		std::for_each(usedTypes.begin(), usedTypes.end(), [](std::pair<const std::string, bool>& it) { it.second = true; }); //transform cannot mutate map but second can change with reference and const first
@@ -3667,7 +3667,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		if (di->decompiledFunction == nullptr) {
 			std::map<ea_t, size_t> entries;
 			num = get_entry_qty();
-			int successes = 0, total = 0;
+			int successes = 0;
 			for (size_t i = 0; i < num; i++) {
 				std::string disp;
 				ea_t ea = get_entry(get_entry_ordinal(i)); //qstring qs; get_entry_name(&qs, i);
@@ -4908,7 +4908,7 @@ ghidradec_graph_cb_ret_t idaapi GraphCallback(void* user_data, int notification_
 	};
 
 	if (notification_code == grcode_user_refresh) {
-		mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
+		[[maybe_unused]] mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
 		const auto* currentGraph = getCurrentGraph();
 		if (currentGraph == nullptr)
 			return 0;
@@ -4941,7 +4941,7 @@ ghidradec_graph_cb_ret_t idaapi GraphCallback(void* user_data, int notification_
 #if IDA_SDK_VERSION < 760
 		return 1;
 	} else if (notification_code == grcode_user_gentext) {
-		mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
+		[[maybe_unused]] mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
 		const auto* currentGraph = getCurrentGraph();
 		if (currentGraph == nullptr)
 			return 0;
@@ -4954,10 +4954,10 @@ ghidradec_graph_cb_ret_t idaapi GraphCallback(void* user_data, int notification_
 		}
 		return 1;
 	} else if (notification_code == grcode_user_text) {
-		mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
+		[[maybe_unused]] mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
 		int node = va_argi(va, int);
 		const char** text = va_arg(va, const char**);
-		bgcolor_t* bgcolor = va_arg(va, bgcolor_t*);
+		[[maybe_unused]] bgcolor_t* bgcolor = va_arg(va, bgcolor_t*);
 		if (node < 0 || (size_t)node >= di->graphText.size())
 		{
 			*text = nullptr;
@@ -4967,14 +4967,14 @@ ghidradec_graph_cb_ret_t idaapi GraphCallback(void* user_data, int notification_
 		return 1;
 		//} else if (notification_code == grcode_user_hint) {
 	} else if (notification_code == grcode_user_title) {
-		mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
-		int node = va_arg(va, int);
-		rect_t* title_rect = va_arg(va, rect_t*);
+		[[maybe_unused]] mutable_graph_t* mg = va_arg(va, mutable_graph_t*);
+		[[maybe_unused]] int node = va_arg(va, int);
+		[[maybe_unused]] rect_t* title_rect = va_arg(va, rect_t*);
 		int title_bg_color = va_arg(va, int);
-		void* dc = va_arg(va, void*); //this is not a Windows GDI device context apparently but a QT::QPainter object
+		[[maybe_unused]] void* dc = va_arg(va, void*); //this is not a Windows GDI device context apparently but a QT::QPainter object
 		//QT::QPainter dc
 		//RECT rect = { 0, 0, title_rect->right - title_rect->left, title_rect->bottom - title_rect->top };
-		int invColor = (~title_bg_color & 0xffffff) | (title_bg_color & 0xff000000);
+		[[maybe_unused]] int invColor = (~title_bg_color & 0xffffff) | (title_bg_color & 0xff000000);
 		//HBRUSH hbr = CreateSolidBrush(invColor);// title_bg_color);
 		//FillRect(dc, &rect, hbr);
 		//HPEN pn = CreatePen(PS_SOLID, 1, invColor);

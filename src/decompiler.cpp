@@ -1102,7 +1102,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					if (fp->points != nullptr) {
 						for (int i = 0; i < fp->pntqty; i++) { //can build a histogram and take the winner
 							if (fp->points[i].ea == get_item_end(ea)) {
-								//*extraPop = fp->points[i].spd - (i == 0 ? 0 : fp->points[i - 1].spd);
+								// extraPop = fp->points[i].spd - (i == 0 ? 0 : fp->points[i - 1].spd);
 								//if ((*extraPop & (1ull << 63)) != 0)* extraPop = 2; //make it cdecl
 							}
 						}
@@ -1120,7 +1120,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				//ph.get_stkarg_offset();
 				//ph.segreg_size
 				//syminfo[i].offset += ph.segreg_size + (inf_is_64bit() ? 8 : inf_is_32bit() == 1 ? 4 : 2);
-				//} else if (ftd.get_call_method() == FTI_NEARCALL || ftd.get_call_method() == FTI_DEFCALL && !is_code_far(inf_cc_cm)) {
+				//} else if (ftd.get_call_method() == FTI_NEARCALL || (ftd.get_call_method() == FTI_DEFCALL && !is_code_far(inf_cc_cm))) {
 			//} else {
 				//syminfo[i].offset += (inf_is_64bit() ? 8 : inf_is_32bit() == 1 ? 4 : 2);
 				//} else if (ftd.get_call_method() == FTI_INTCALL) {

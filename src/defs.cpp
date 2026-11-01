@@ -354,7 +354,12 @@ bool RdGlobalInfo::configureDecompilation()
 	decompilerExePath = ghidraPath + "/Ghidra/Features/Decompiler/os/linux64/";
 	if (!isDecompilerInSpecifiedPath()) decompilerExePath = ghidraPath + "/Ghidra/Features/Decompiler/os/linux_x86_64/";
 #else
+#if defined(__aarch64__) || defined(__arm64__)
+	decompilerExePath = ghidraPath + "/Ghidra/Features/Decompiler/os/mac_arm_64/";
+	if (!isDecompilerInSpecifiedPath()) decompilerExePath = ghidraPath + "/Ghidra/Features/Decompiler/os/osx64/";
+#else
 	decompilerExePath = ghidraPath + "/Ghidra/Features/Decompiler/os/osx64/";
+#endif
 	if (!isDecompilerInSpecifiedPath()) decompilerExePath = ghidraPath + "/Ghidra/Features/Decompiler/os/mac_x86_64/";
 #endif
 #endif	

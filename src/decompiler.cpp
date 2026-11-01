@@ -2670,9 +2670,9 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				}
 			}
 			if ((!bTop || item.second != 0) && ti.typeName.size() != 0) out += (ti.isReadOnly ? colorize("const", bColor, COLOR_KEYWORD) + " " : "") + colorize(ti.typeName, bColor, GHIDRADEC_COLOR_TYPE) + (item.first.size() != 0 ? " " : "") + colorize(item.first, bColor, NameColor);
-			else if (bTop &&
+			else if ((bTop &&
 					(ti.metaType == "int" || ti.metaType == "uint" || ti.metaType == "void" ||
-						ti.metaType == "bool" || ti.metaType == "float" || ti.metaType == "unknown") ||
+						ti.metaType == "bool" || ti.metaType == "float" || ti.metaType == "unknown")) ||
 						(tinf.is_union() || (tinf.is_struct() && bHasBitFields)) /*&& !ti.is_typeref()*/) { //&& has_bitfields
 				out += printTypeForCode(tinf, item.first, bColor, NameColor, bTop, indnt);
 			} else if (ti.metaType == "ptr") {
@@ -4019,14 +4019,15 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		}
 		uval_t stkargs = 0;
 		for (size_t i = 0; i < paramInfo.syminfo.size(); i++) {
-			if (paramInfo.syminfo[i].argIndex == -1) continue;
+			if (paramInfo.syminfo[i].argIndex < 0) continue;
+			const size_t argIndex = static_cast<size_t>(paramInfo.syminfo[i].argIndex);
 			funcarg_t fa;
 			addrToArgLoc(paramInfo.syminfo[i].addr, fa.argloc);
 			typeInfoToIDA(0, paramInfo.syminfo[i].pi.ti, fa.type);
 			fa.name = qstring(paramInfo.syminfo[i].pi.name.c_str());
-			if (ftd.size() <= paramInfo.syminfo[i].argIndex) ftd.resize(paramInfo.syminfo[i].argIndex + 1);
+			if (ftd.size() <= argIndex) ftd.resize(argIndex + 1);
 			if (paramInfo.syminfo[i].addr.addr.space == "stack") stkargs += (uval_t)paramInfo.syminfo[i].addr.size;
-			ftd[paramInfo.syminfo[i].argIndex] = fa;
+			ftd[argIndex] = fa;
 		}
 		ftd.stkargs = stkargs;
 		//the far/near data/call method is basically irrelevant unless there are arguments/return value containing data or function pointers
@@ -4183,8 +4184,10 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			func_type_data_t ftd;
 			bool bChanged = false, bFrameChange = false;
 			if (ti.get_func_details(&ftd)) {
-				if (f->is_far() && (ftd.get_call_method() == FTI_NEARCALL || ftd.get_call_method() == FTI_DEFCALL && !is_code_far(inf_cc_cm)) ||
-					!f->is_far() && (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)))) {
+				if ((f->is_far() && (ftd.get_call_method() == FTI_NEARCALL ||
+					(ftd.get_call_method() == FTI_DEFCALL && !is_code_far(inf_cc_cm)))) ||
+					(!f->is_far() && (ftd.get_call_method() == FTI_FARCALL ||
+					(ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm))))) {
 					ftd.flags &= ~FTI_CALLTYPE;
 					ftd.flags |= (f->is_far() ? FTI_FARCALL : FTI_NEARCALL);
 					bChanged = true;
@@ -4500,7 +4503,9 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				func_t* f = get_func(ea);
 				if (f != nullptr) {
 					bool bChanged = false;
-					if (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)) && !f->is_far() && (f->flags & FUNC_USERFAR) == 0) {
+					if ((ftd.get_call_method() == FTI_FARCALL ||
+						(ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm))) &&
+						!f->is_far() && (f->flags & FUNC_USERFAR) == 0) {
 						f->flags |= FUNC_FAR; //FUNC_USERFAR
 						bChanged = true;
 					}
@@ -4667,8 +4672,13 @@ bool detectProcCompiler(RdGlobalInfo* di, std::string& pspec, std::string & cspe
 	std::transform(pname.begin(), pname.end(), pname.begin(), [](unsigned char c) { return std::tolower(c); });
 	std::vector<int>::iterator it = di->toolMap[pname].begin();
 	for (; it != di->toolMap[pname].end(); it++) {
-		if ((di->li[*it].size == 32 && inf_is_32bit() && !inf_is_64bit() || di->li[*it].size == 64 && inf_is_64bit() || di->li[*it].size != 32 && di->li[*it].size != 64 && !inf_is_32bit() && !inf_is_64bit()) &&
-			di->li[*it].bigEndian == inf_is_be() || di->toolMap[pname].size() == 1) { //should only be one match though, and parameters should always match
+		const bool matchingBitness =
+			(di->li[*it].size == 32 && inf_is_32bit() && !inf_is_64bit()) ||
+			(di->li[*it].size == 64 && inf_is_64bit()) ||
+			(di->li[*it].size != 32 && di->li[*it].size != 64 &&
+			 !inf_is_32bit() && !inf_is_64bit());
+		if ((matchingBitness && di->li[*it].bigEndian == inf_is_be()) ||
+			di->toolMap[pname].size() == 1) { //should only be one match though, and parameters should always match
 			sleighfilename = di->li[*it].basePath + di->li[*it].slafile;
 			pspec = di->li[*it].basePath + di->li[*it].processorspec;
 			if (di->li[*it].compilers.size() == 1) {

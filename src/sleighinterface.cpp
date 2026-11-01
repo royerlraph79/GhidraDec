@@ -3788,7 +3788,7 @@ void DecompInterface::setupTranslator(DecompileCallback* cb, std::string sleighf
 			}
 			procSpaces += "</spaces>";
 			//need to add global attributes: false for unique and register, true for ram e.g. global="true/false" on the space_unique and space children though
-		} /*else if (el->getName() == "symbol_table") {
+		} else if (el->getName() == "symbol_table") {
 			const List& lst(el->getChildren());
 			List::const_iterator it;
 			for (it = lst.begin(); it != lst.end(); ++it) {

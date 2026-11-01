@@ -110,6 +110,12 @@ class SdkSelectors(unittest.TestCase):
 
 
 class GhidraProvisioning(unittest.TestCase):
+    def setUp(self):
+        # These tests use deliberately minimal fake Ghidra sources.
+        patcher = patch.object(deps, "apply_ghidra_warning_patches")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_version_change_replaces_generated_subset(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -145,6 +151,37 @@ class GhidraProvisioning(unittest.TestCase):
             deps.ensure_ghidra_sources(argparse.Namespace(
                 version="12.2", source_dir=str(source), output_dir=str(output), refresh=False, url=None))
             self.assertEqual((output / "decompile/sleigh.cc").read_text(), "new")
+
+
+class GhidraWarningPatches(unittest.TestCase):
+    def test_reproducible_and_idempotent_patch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for filename, replacements in deps._GHIDRA_12_2_WARNING_PATCHES.items():
+                source = "\n".join(old * count for old, _new, count in replacements)
+                (root / filename).write_text(source, encoding="utf-8")
+            deps.apply_ghidra_warning_patches(root, "12.2")
+            once = {name: (root / name).read_text(encoding="utf-8")
+                    for name in deps._GHIDRA_12_2_WARNING_PATCHES}
+            for filename, replacements in deps._GHIDRA_12_2_WARNING_PATCHES.items():
+                patched = once[filename]
+                for old, new, count in replacements:
+                    if old not in new:
+                        self.assertNotIn(old, patched)
+                    if new:
+                        self.assertEqual(patched.count(new), count)
+            with patch.object(Path, "write_text", side_effect=AssertionError("rewrote patched source")):
+                deps.apply_ghidra_warning_patches(root, "12.2")
+            self.assertEqual(once, {name: (root / name).read_text(encoding="utf-8")
+                                    for name in deps._GHIDRA_12_2_WARNING_PATCHES})
+
+    def test_unexpected_source_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for filename in deps._GHIDRA_12_2_WARNING_PATCHES:
+                (root / filename).write_text("unexpected source code", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                deps.apply_ghidra_warning_patches(root, "12.2")
 
 
 class OutputQuality(unittest.TestCase):

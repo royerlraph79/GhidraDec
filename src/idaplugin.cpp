@@ -803,7 +803,7 @@ bool GhidraDec::canDecompileInput()
 			{
 				qstring qCmt;
 				func_t* fnc = getn_func(i);
-				if (get_func_cmt(&qCmt, fnc, false) <= 0)
+				if (gd_func_cmt(&qCmt, fnc, false) <= 0)
 				{
 					continue;
 				}

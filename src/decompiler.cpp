@@ -618,10 +618,10 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			}
 			for (int i = 0; i <= ph.reg_last_sreg - ph.reg_first_sreg; i++) {
 				regtrans = (unsigned long long)regNameToIndexIda(ph.reg_names[i + ph.reg_first_sreg]);
-				if (regtrans == -1) continue;
+				if (regtrans == ~0ULL) continue;
 				//this is a much more powerful analysis by the processor engine than the default segregs which now are not used
 				for (size_t k = 0; k < sregRanges[i].size(); k++) {
-					if (sregRanges[i][k].val == -1) continue;
+					if (sregRanges[i][k].val == BADSEL) continue;
 					//if (out.val == ((1 << (ph.segreg_size * 8)) - 1)) continue;
 					inits.push_back(InitStateItem{ {"ram", sregRanges[i][k].start_ea}, {"ram", sregRanges[i][k].end_ea}, {{"register", regtrans}, (unsigned long)ph.segreg_size}, (unsigned long long)sregRanges[i][k].val });
 				}
@@ -946,7 +946,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					qstring qs;
 					if (get_reg_name(&qs, f->regargs[i].reg, (size_t)size) == -1) offset = -1;  //for example 1 byte of DS register will fail
 					else offset = regNameToIndexIda(qs.c_str());
-					if (offset == -1) {
+					if (offset == ~0ULL) {
 						bitrange_t bits;
 						const char* regnm = nullptr;
 						regnm = get_reg_info(ph.reg_names[f->regargs[i].reg], &bits); //use default processor name
@@ -963,9 +963,9 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					get_reg_name(&qs, f->regargs[i].reg, ri.size);
 					offset = regNameToIndexIda(qs.c_str());
 				}
-				if (offset == -1) {
+				if (offset == ~0ULL) {
 					offset = regNameToIndexIda(ph.reg_names[f->regargs[i].reg]); //last try if nothing else works
-					if (offset == -1) continue;
+					if (offset == ~0ULL) continue;
 				}
 				std::vector<SymInfo>::iterator it = nm.empty() ? func.syminfo.end() : std::find_if(func.syminfo.begin(), func.syminfo.end(), [&nm](SymInfo it) { return it.pi.name == nm; });
 				if (it == func.syminfo.end()) {
@@ -1614,7 +1614,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			checkPointer(ea, nextChain, deps); //end recursion since pointer is only recursed through new data type if not already traced
 		} else if (tc[idx].metaType == "array") { //unions and bitfields consumed in this way
 			unsigned long long elSize = tc[idx + 1].size;
-			if (elSize == -1) {
+			if (elSize == ~0ULL) {
 				tinfo_t ti;
 				if (ti.get_named_type(get_idati(), tc[idx + 1].typeName.c_str())) {
 					elSize = ti.get_size();
@@ -3909,7 +3909,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				isCodeNear = true;
 			}
 		}
-		if (argSize != -1 && ftd.stkargs != argSize) {
+		if (argSize != BADADDR && ftd.stkargs != argSize) {
 			if (isFar && ftd.stkargs - ptrSizes.size() * ph.segreg_size == argSize) {
 				isNear = true;
 				isFar = false;

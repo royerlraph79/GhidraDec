@@ -356,7 +356,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	std::string getMetaTypeInfo(const tinfo_t& ti)
 	{
 		if (ti.is_void()) return "void";
-		else if (ti.is_char() || is_type_int(ti.get_realtype()) && ti.is_signed()) return "int";
+		else if (ti.is_char() || (is_type_int(ti.get_realtype()) && ti.is_signed())) return "int";
 		else if (is_type_int(ti.get_realtype())) return "uint"; //is_unsigned() || get_sign() == no_sign
 		else if (ti.is_floating()) return "float";
 		else if (ti.is_bool()) return "bool";
@@ -395,7 +395,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			if ((c & CM_CC_MASK) == CM_CC_STDCALL || (c & CM_CC_MASK) == CM_CC_PASCAL) model = "__stdcall";
 			else model = "__cdecl";
 			model += "16"; // && is_code_far(inf_cc_cm)
-			model += (callMethod == FTI_FARCALL || callMethod == FTI_DEFCALL && is_code_far(c)) ? "far" : "near"; //|| (c & (CM_MASK | CM_M_MASK)) == (CM_UNKNOWN | CM_M_NN)
+			model += (callMethod == FTI_FARCALL || (callMethod == FTI_DEFCALL && is_code_far(c))) ? "far" : "near"; //|| (c & (CM_MASK | CM_M_MASK)) == (CM_UNKNOWN | CM_M_NN)
 			return model;
 		}
 		if (!isX86()) {
@@ -1058,7 +1058,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				func_type_data_t ftd;
 				getFuncByGuess((ea_t)addr.offset, ti);
 				ti.get_func_details(&ftd);
-				if (ftd.get_call_method() == FTI_FARCALL || ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)) retSize += ph.segreg_size;
+				if (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm))) retSize += ph.segreg_size;
 			}
 			//bitrange_t bits;
 			//const char* regnm = get_reg_info(ash.a_curip, &bits); //use default processor name
@@ -1115,7 +1115,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			//}
 			//return address size based on model
 			//x86-64 bit far/interupt calling aligns everything like flags, error codes, stack pointer and stack register to 64 bits each
-			//if (ftd.get_call_method() == FTI_FARCALL || ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)) {
+			//if (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm))) {
 			//if (f->is_far() || (f->flags & FUNC_USERFAR) != 0 || imports.find(offset) != imports.end()) {
 				//ph.max_ptr_size(); - for some reason is 48 bits on 64-bit systems?
 				//ph.get_stkarg_offset();
@@ -1288,7 +1288,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 						//if (exists_fixup(offset)) msi.kind = KIND_EXTERNALREFERENCE; //fixups is not really a determining criterion in exported functions
 						if (isCallableOrphanCodeLabel(ea, fl)) msi.kind = KIND_FUNCTION;
 						else if (is_code(fl) && isKnownNoReturnFunctionName(getSymbolName(addr.offset, "loc"))) msi.kind = KIND_FUNCTION;
-						else if (is_data(fl) || is_unknown(fl) && is_mapped((ea_t)addr.offset)) msi.kind = KIND_DATA;
+						else if (is_data(fl) || (is_unknown(fl) && is_mapped((ea_t)addr.offset))) msi.kind = KIND_DATA;
 						else if (has_name(fl) || has_dummy_name(fl)) msi.kind = KIND_LABEL; //dummy name/label for code only is_code(fl)...
 						//if (is_unknown(fl) && !is_mapped(offset))
 					}
@@ -1816,7 +1816,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				ti.get_ptr_details(&pt);
 				pt.obj_type.get_func_details(&ftd);
 			} else ti.get_func_details(&ftd);
-			typeinf.size = (ftd.get_call_method() == FTI_FARCALL || ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)) ? ph.segreg_size : 0;
+			typeinf.size = (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm))) ? ph.segreg_size : 0;
 			typeinf.size += inf_is_64bit() ? 8 : (inf_is_32bit() ? 4 : 2);
 			getFuncTypeInfo(ti.is_funcptr() ? pt.obj_type : ti, true, typeinf.funcInfo);
 			typeChain.push_back(typeinf);
@@ -2577,7 +2577,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			s.pop();
 			if (std::get<2>(item)) { //post order time where index is complement
 				const tinfo_t& ti = std::get<1>(item);
-				if (ti.is_ptr() || ti.is_array() && t != ti) {
+				if (ti.is_ptr() || (ti.is_array() && t != ti)) {
 					out += std::string(std::get<0>(item).size() != 0 || ti.is_const() ? "* " : "*") + (ti.is_const() ? colorize("const", bColor, COLOR_KEYWORD) + (std::get<0>(item).size() != 0 ? " " : "") : "") + colorize(std::get<0>(item), bColor, NameColor);
 				} else if (ti.is_array()) {
 					array_type_data_t atd;
@@ -2650,7 +2650,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			s.pop();
 			if (item.second < 0) { //post order time where index is complement
 				const TypeInfo& ti = types.at(~item.second);
-				if (ti.metaType == "ptr" || ti.metaType == "array" && 0 != ~item.second) {
+				if (ti.metaType == "ptr" || (ti.metaType == "array" && 0 != ~item.second)) {
 					out += std::string(item.first.size() != 0 || ti.isReadOnly ? "* " : "*") + (ti.isReadOnly ? colorize("const", bColor, COLOR_KEYWORD) + (item.first.size() != 0 ? " " : "") : "") + colorize(item.first, bColor, NameColor);
 				} else if (ti.metaType == "array") { //pointer to array should be treated as pointer to pointer
 					out += (item.first.size() != 0 ? " " : "") + colorize(item.first, bColor, NameColor) + "[" + std::to_string(ti.arraySize) + "]";
@@ -2674,7 +2674,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			else if (bTop &&
 					(ti.metaType == "int" || ti.metaType == "uint" || ti.metaType == "void" ||
 						ti.metaType == "bool" || ti.metaType == "float" || ti.metaType == "unknown") ||
-						(tinf.is_union() || tinf.is_struct() && bHasBitFields) /*&& !ti.is_typeref()*/) { //&& has_bitfields
+						(tinf.is_union() || (tinf.is_struct() && bHasBitFields)) /*&& !ti.is_typeref()*/) { //&& has_bitfields
 				out += printTypeForCode(tinf, item.first, bColor, NameColor, bTop, indnt);
 			} else if (ti.metaType == "ptr") {
 				s.push(std::pair<std::string, int>(item.first, ~item.second));
@@ -2781,7 +2781,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					if (i != 0) s.push(std::tuple<ea_t, tinfo_t, int>((ea_t)std::get<0>(item), ti, -2));
 					else break;
 				}
-			} else if (ti.is_char() || is_type_int(ti.get_realtype()) && ti.is_signed()) {
+			} else if (ti.is_char() || (is_type_int(ti.get_realtype()) && ti.is_signed())) {
 				long long num = 0;
 				get_bytes(&num, ti.get_size(), std::get<0>(item));
 				//heuristics for printing hex vs decimal?
@@ -3407,7 +3407,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		virtual ~execFunctor(void) override {}
 		/// Callback to be executed.
 		/// Never let plugin exceptions escape through IDA's UI dispatcher.
-		virtual GHIDRADEC_EXEC_RETURN idaapi execute(void)
+		virtual GHIDRADEC_EXEC_RETURN idaapi execute(void) override
 		{
 			try {
 				fun();
@@ -4185,7 +4185,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			bool bChanged = false, bFrameChange = false;
 			if (ti.get_func_details(&ftd)) {
 				if (f->is_far() && (ftd.get_call_method() == FTI_NEARCALL || ftd.get_call_method() == FTI_DEFCALL && !is_code_far(inf_cc_cm)) ||
-					!f->is_far() && (ftd.get_call_method() == FTI_FARCALL || ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm))) {
+					!f->is_far() && (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)))) {
 					ftd.flags &= ~FTI_CALLTYPE;
 					ftd.flags |= (f->is_far() ? FTI_FARCALL : FTI_NEARCALL);
 					bChanged = true;
@@ -4501,7 +4501,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				func_t* f = get_func(ea);
 				if (f != nullptr) {
 					bool bChanged = false;
-					if (ftd.get_call_method() == FTI_FARCALL || ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm) && !f->is_far() && (f->flags & FUNC_USERFAR) == 0) {
+					if (ftd.get_call_method() == FTI_FARCALL || (ftd.get_call_method() == FTI_DEFCALL && is_code_far(inf_cc_cm)) && !f->is_far() && (f->flags & FUNC_USERFAR) == 0) {
 						f->flags |= FUNC_FAR; //FUNC_USERFAR
 						bChanged = true;
 					}

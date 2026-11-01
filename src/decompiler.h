@@ -36,9 +36,9 @@ namespace idaplugin {
 		struct FuncInfo
 		{
 			std::string name;
-			bool bFromParamId;
-			FuncProtoInfo fpi;
-			FuncProtoInfo oldfpi;
+			bool bFromParamId = false;
+			FuncProtoInfo fpi = {};
+			FuncProtoInfo oldfpi = {};
 		};
 		RdGlobalInfo* di;
 		int regNameToIndexIda(std::string regstr);

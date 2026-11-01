@@ -456,7 +456,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			return "stack";
 		} else if (al.is_scattered()) {
 			scattered_aloc_t scat;
-			for (size_t i = scat.size() - 1; i != -1; i--) { //these appear to be high to low, so need to reverse order here
+			for (size_t i = scat.size(); i-- > 0;) { //these appear to be high to low, so need to reverse order here
 				unsigned long long offs;
 				std::vector<SizedAddrInfo> j; //can have a register reg1() as the is_mixed_scattered indicates
 				std::string spc = arglocToAddr(scat[i], &offs, j, false); //all "ram" - certainly join or reg2 would not make sense
@@ -662,7 +662,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		std::vector<unsigned short>& bytes = cb->byteCache[page].second;
 		bytes.clear();
 		bytes.reserve(CACHEPAGESIZE);
-		for (int i = 0; i < CACHEPAGESIZE; i++)
+		for (size_t i = 0; i < CACHEPAGESIZE; i++)
 			bytes.push_back(is_loaded(page + i) ? get_byte(page + i) : 256);
 		cb->byteCache[page].first = cb->cacheCount++;
 	}
@@ -765,7 +765,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			if (bFetch) executeOnMainThread([this, size, addr]() {
 					unsigned long long page = addr.offset & (~(CACHEPAGESIZE - 1));
 					do {
-						for (int i = 0; i < CACHEPAGESIZE; i++) { //i = offset & (CACHEPAGESIZE - 1);
+						for (size_t i = 0; i < CACHEPAGESIZE; i++) { //i = offset & (CACHEPAGESIZE - 1);
 							byteCache[(ea_t)page].second.push_back(is_loaded((ea_t)page + i) ? get_byte((ea_t)page + i) : 256);
 						}
 						page += CACHEPAGESIZE;
@@ -923,7 +923,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					func.model = ccToStr(isX86() ? CM_CC_STDCALL : CM_CC_UNKNOWN, f->is_far() || (f->flags & FUNC_USERFAR) != 0 ? FTI_FARCALL : FTI_NEARCALL, false);
 				}
 			}
-			if (func.extraPop == -1 && (f->flags & FUNC_PURGED_OK) != 0) func.extraPop = (unsigned long long)f->argsize; //type unknown but have frame so now can calculate
+			if (func.extraPop == ~0ULL && (f->flags & FUNC_PURGED_OK) != 0) func.extraPop = (unsigned long long)f->argsize; //type unknown but have frame so now can calculate
 			if (f->regargs == nullptr) read_regargs(f); //populates regargs, similar to how get_spd or the like with f specified populate stkpts
 			//callregs_t cr;
 			//cr.init_regs(inf_cc_cm);
@@ -1073,7 +1073,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			}
 			//only need to figure out return address size and adjust extraPop which depending on type info or not may affect the model
 			//it would be really nice to have context for which cref was used!
-			if (func.extraPop == -1) {
+			if (func.extraPop == ~0ULL) {
 				std::map<sval_t, int> histogram;
 				for (ea_t ea = get_first_cref_to((ea_t)addr.offset); ea != BADADDR;) {
 					//if points is nullptr, IDA wont retrieve and fill it unless get_spd or the like is called with non-null pointer func_t first
@@ -1093,7 +1093,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					std::max_element(histogram.begin(), histogram.end(), [](std::pair<sval_t, int> p1, std::pair<sval_t, int> p2) { return p1.second < p2.second; });
 				if (max != histogram.end()) func.extraPop = max->first;
 			}
-			func.extraPop = func.extraPop == -1 ? retSize : func.extraPop + retSize;
+			func.extraPop = func.extraPop == ~0ULL ? retSize : func.extraPop + retSize;
 			/*for (ea_t ea = get_first_cref_to(f->start_ea); ea != BADADDR; ea = get_next_cref_to(f->start_ea, ea)) {
 				func_t* fp = get_func(ea);
 				if (fp != nullptr) {
@@ -1599,7 +1599,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	}
 	void IdaCallback::consumeTypeInfo(int idx, std::vector<TypeInfo>& tc, unsigned long long ea, std::vector<ea_t> & deps)
 	{
-		if (tc[idx].size == -1) {
+		if (tc[idx].size == ~0ULL) {
 			std::vector<TypeInfo> nextChain;
 			tinfo_t ti;
 			ti.get_named_type(get_idati(), tc[idx].typeName.c_str());
@@ -1626,7 +1626,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			} else {
 				//could be an array of structures, arrays, or pointers
 				if (!is_strlit(get_flags((ea_t)ea)) || (elSize != sizeof(char) && elSize != sizeof(wchar16_t) && elSize != sizeof(wchar32_t))) { //must prevent auto detection here
-					for (int i = 0; i < tc[idx].arraySize; i++) {
+					for (size_t i = 0; i < tc[idx].arraySize; i++) {
 						consumeTypeInfo(idx + 1, tc, ea + elSize * i, deps);
 					}
 				}
@@ -4041,7 +4041,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	}
 	void IdaCallback::typeInfoToIDA(int idx, std::vector<TypeInfo>& type, tinfo_t & ti)
 	{
-		if (type[idx].size == -1) {
+		if (type[idx].size == ~0ULL) {
 			ti.get_named_type(get_idati(), type[idx].typeName.c_str());
 			return;
 		}

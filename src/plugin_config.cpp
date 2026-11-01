@@ -195,7 +195,7 @@ bool readConfigFile(RdGlobalInfo& rdgi)
 		const uchar delim = ';';
 		std::for_each(qs.begin(), qs.end(), [&idx, &split](uchar ch) { if (ch == delim) { idx++; split.push_back(std::string()); } else if (ch != 0) split[idx].push_back(ch); });
 		// Older stored settings may not contain all four optional fields.
-		split.resize(std::max<size_t>(split.size(), 4));
+		if (split.size() < 4) split.resize(4);
 		rdgi.customPspec = split[0];
 		rdgi.customCspec = split[1];
 		rdgi.customSlafile = split[2];

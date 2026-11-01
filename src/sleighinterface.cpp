@@ -581,7 +581,8 @@ void PackedPcodeRawOut::rewriteDirectCrossFunctionBranchesAsTailCalls(
 			it->vars[0].space == nullptr ||
 			it->vars[0].space->getName() != currentFunction.space)
 			continue;
-		MappedSymbolInfo target = { KIND_HOLE };
+		MappedSymbolInfo target{};
+		target.kind = KIND_HOLE;
 		callback->getMappedSymbol(
 			AddrInfo{ it->vars[0].space->getName(), it->vars[0].offset }, target);
 		if (target.kind != KIND_FUNCTION || target.entryPoint == currentFunction.offset)
@@ -2117,9 +2118,9 @@ std::string DecompInterface::writeFunc(SizedAddrInfo addr, std::string funcname,
 		//could assume positive offsets are args but indexes now assigned by callback
 		symbols += "            <mapsym>\n              <symbol name=\"" + it->pi.name + "\" typelock=\"" +
 			//the typelock is a size lock for unknown metatype and for category 0 mappings for the primary function being decompiled it is an all or nothing situation - due to design issue in Ghidra
-			(it->pi.ti.begin()->metaType == "unknown" &&
+			((it->pi.ti.begin()->metaType == "unknown" &&
 			//startOffs.space != addr.addr.space || startOffs.offset != addr.addr.offset ||
-				it->argIndex == -1 || (it->argIndex != -1 && !bTypeLockArgs) ? "false" : "true") +
+				it->argIndex == -1) || (it->argIndex != -1 && !bTypeLockArgs) ? "false" : "true") +
 			"\" namelock=\"" + std::string(it->pi.name.size() != 0 ? "true" : "false") +
 			"\" readonly=\"" + (readonly ? "true" : "false") +
 			"\" cat=\"" + std::string(it->argIndex != -1 ? "0\" index=\"" +
@@ -2364,7 +2365,8 @@ std::vector<uchar> DecompInterface::readResponse() {
 						AddrInfo addr{ queryAddr.getSpace()->getName(), queryAddr.getOffset() };
 						callback->protocolRecorder("query(command_getmappedsymbols addr=\"" + addr.space +
 							":0x" + to_string(addr.offset, hex) + "\")", false);
-						MappedSymbolInfo msi = { KIND_HOLE };
+						MappedSymbolInfo msi{};
+						msi.kind = KIND_HOLE;
 						callback->getMappedSymbol(addr, msi);
 						callback->protocolRecorder("query(command_getmappedsymbols result kind=\"" +
 							mappedSymbolKindName(msi.kind) + "\" entry=\"0x" +
@@ -2377,7 +2379,8 @@ std::vector<uchar> DecompInterface::readResponse() {
 						if (msi.kind == KIND_FUNCTION) {
 							functionMapping = functionQueryMapping(msi, addr);
 							if (functionMapping.symbol && msi.entryPoint != addr.offset) {
-								MappedSymbolInfo entryInfo = { KIND_HOLE };
+								MappedSymbolInfo entryInfo{};
+								entryInfo.kind = KIND_HOLE;
 								callback->getMappedSymbol(AddrInfo{addr.space, msi.entryPoint}, entryInfo);
 								if (entryInfo.kind == KIND_FUNCTION && entryInfo.entryPoint == msi.entryPoint)
 									msi = entryInfo;
@@ -2695,7 +2698,8 @@ std::vector<uchar> DecompInterface::readResponse() {
 						AddrInfo addr{ queryAddr.getSpace()->getName(), queryAddr.getOffset() };
 						callback->protocolRecorder("query(command_getpcode addr=\"" + addr.space +
 							":0x" + to_string(addr.offset, hex) + "\")", false);
-						MappedSymbolInfo owner = { KIND_HOLE };
+						MappedSymbolInfo owner{};
+						owner.kind = KIND_HOLE;
 						if (addr.space == startOffs.space) {
 							callback->getMappedSymbol(addr, owner);
 							callback->protocolRecorder("query(command_getpcode owner kind=\"" +
@@ -2714,7 +2718,8 @@ std::vector<uchar> DecompInterface::readResponse() {
 								goto query_response_written;
 							}
 							if (owner.kind == KIND_HOLE && addr.offset != startOffs.offset) {
-								MappedSymbolInfo current = { KIND_HOLE };
+								MappedSymbolInfo current{};
+								current.kind = KIND_HOLE;
 								callback->getMappedSymbol(startOffs, current);
 								const bool pastNoReturnFunction =
 									current.kind == KIND_FUNCTION &&
@@ -3098,7 +3103,8 @@ std::vector<uchar> DecompInterface::readResponse() {
 					if (addr.space == "register") {
 						//trans->getRegisterName(trans->getSpaceByName(space), idx, sz).c_str()
 					}
-					MappedSymbolInfo msi = { KIND_HOLE };
+					MappedSymbolInfo msi{};
+					msi.kind = KIND_HOLE;
 					callback->getMappedSymbol(addr, msi);
 					std::string res;
 					if (msi.kind == KIND_FUNCTION) {
@@ -4900,7 +4906,7 @@ int DecompInterface::coreTypeLookup(size_t size, std::string metatype)
 	//special size handling for void=0, char=1/2, bool=1, code=1???
 	for (int i = 0; i < numDefCoreTypes; i++) {
 		if (defaultCoreTypes[i].metaType == metatype) {
-			if (defaultCoreTypes[i].size == size) return i;
+			if (defaultCoreTypes[i].size >= 0 && static_cast<size_t>(defaultCoreTypes[i].size) == size) return i;
 		}
 	}
 	return -1;
@@ -4960,7 +4966,9 @@ static void parseSizedAddress(Element* el, SizedAddrInfo& addr)
 	if (addr.addr.space == "join") {
 		for (int i = 0; i < el->getNumAttributes(); i++) {
 			if (el->getAttributeName(i).substr(0, 5) == "piece") {
-				int idx = strtoull(el->getAttributeName(i).substr(5).c_str(), nullptr, 10) - 1;
+				const unsigned long long piece = strtoull(el->getAttributeName(i).substr(5).c_str(), nullptr, 10);
+				if (piece == 0 || piece > static_cast<unsigned long long>(el->getNumAttributes())) continue;
+				const size_t idx = static_cast<size_t>(piece - 1);
 				SizedAddrInfo inf;
 				size_t off = el->getAttributeValue(i).find(':');
 				inf.addr.space = el->getAttributeValue(i).substr(0, off);
@@ -5047,7 +5055,9 @@ void parseFuncProto(Element* el, FuncProtoInfo& fpi)
 							if (fpi.retType.addr.addr.space == "join") {
 								for (int i = 0; i < (*it)->getNumAttributes(); i++) {
 									if ((*it)->getAttributeName(i).substr(0, 5) == "piece") {
-										int idx = strtoull((*it)->getAttributeName(i).substr(5).c_str(), nullptr, 10) - 1;
+										const unsigned long long piece = strtoull((*it)->getAttributeName(i).substr(5).c_str(), nullptr, 10);
+										if (piece == 0 || piece > static_cast<unsigned long long>((*it)->getNumAttributes())) continue;
+										const size_t idx = static_cast<size_t>(piece - 1);
 										SizedAddrInfo inf;
 										size_t off = (*it)->getAttributeValue(i).find(':');
 										inf.addr.space = (*it)->getAttributeValue(i).substr(0, off);
@@ -5522,7 +5532,9 @@ std::string DecompInterface::doDecompile(DecMode dm, AddrInfo addr, std::string 
 													if (sym.addr.addr.space == "join") {
 														for (int i = 0; i < el->getNumAttributes(); i++) {
 															if (el->getAttributeName(i).substr(0, 5) == "piece") {
-																int idx = strtoull(el->getAttributeName(i).substr(5).c_str(), nullptr, 10) - 1;
+																const unsigned long long piece = strtoull(el->getAttributeName(i).substr(5).c_str(), nullptr, 10);
+																if (piece == 0 || piece > static_cast<unsigned long long>(el->getNumAttributes())) continue;
+																const size_t idx = static_cast<size_t>(piece - 1);
 																SizedAddrInfo inf;
 																size_t off = el->getAttributeValue(i).find(':');
 																inf.addr.space = el->getAttributeValue(i).substr(0, off);

@@ -41,16 +41,6 @@ static bool hasValidNavigationPosition(const RdGlobalInfo* decompInfo)
 			&& decompInfo->navigationActual != decompInfo->navigationList.end();
 }
 
-static bool isFunctionColor(int color)
-{
-	return color == COLOR_DEFAULT || color == COLOR_CNAME || color == COLOR_IMPNAME;
-}
-
-static bool isGlobalColor(int color)
-{
-	return color == COLOR_DEFAULT || color == COLOR_DNAME;
-}
-
 //
 //==============================================================================
 //

@@ -174,7 +174,7 @@ struct ShowOutput : public exec_request_t
 			return;
 		}
 		qstring fncCmt;
-		if (get_func_cmt(&fncCmt, fnc, false) <= 0)
+		if (gd_func_cmt(&fncCmt, fnc, false) <= 0)
 		{
 			return;
 		}

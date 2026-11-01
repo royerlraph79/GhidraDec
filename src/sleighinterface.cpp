@@ -958,22 +958,6 @@ static std::pair<std::string, std::string> getPackedJvmSwitchPcode(Translate& tr
 	return std::pair<std::string, std::string>(packedStream.str(), xml);
 }
 
-static std::string getPackedEmptyPcodeInject(Translate& trans, AddrInfo addr)
-{
-	std::ostringstream packedStream;
-	PackedEncode encoder(packedStream);
-	AddrSpace* space = trans.getSpaceByName(addr.space);
-	if (space == nullptr)
-		throw DecompError("No address space named " + addr.space);
-	Address address(space, addr.offset);
-	encoder.openElement(ELEM_RESPONSE_INST);
-	encoder.writeSignedInteger(ATTRIB_OFFSET, 0);
-	address.encode(encoder);
-	encoder.closeElement(ELEM_RESPONSE_INST);
-	return packedStream.str();
-}
-
-
 //Ghidra/Framework/SoftwareModeling/src/main/java/ghidra/app/plugin/processors/sleigh/PcodeEmitObjects.java
 //Ghidra/Framework/SoftwareModeling/src/main/java/ghidra/program/model/pcode/PcodeOp.java
 class XmlPcodeEmit : public PcodeEmit {
@@ -1887,7 +1871,6 @@ std::string DecompInterface::writeFuncProto(FuncProtoInfo func,
 	if (callStyles.find(func.model) == callStyles.end()) func.model = "unknown";
 	if (bUseInternalList) {
 		for (std::vector<SymInfo>::iterator it = func.syminfo.begin(); it != func.syminfo.end(); it++) {
-			bool readonly = false;
 			symbols += std::string(indnt + 4, ' ') + "<param name=\"" + it->pi.name + "\" typelock=\"" "true"
 				"\" namelock=\"" + std::string(it->pi.name.size() != 0 ? "true" : "false") + "\">\n" +
 				std::string(indnt + 6, ' ') + "<addr/>\n" +

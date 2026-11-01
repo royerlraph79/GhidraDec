@@ -2745,7 +2745,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 							size_t totalSize = (size_t)((utd[i].offset + btd.width + 7) / 8 - utd[i].offset / 8);
 							std::vector<uchar> bts(totalSize);
 							get_bytes(bts.data(), totalSize, std::get<0>(item));
-							unsigned long long num, shiftbits = 8 - ((utd[i].offset + btd.width) % 8);
+							unsigned long long num = 0, shiftbits = 8 - ((utd[i].offset + btd.width) % 8);
 							num |= (bts[0] >> shiftbits);
 							for (size_t j = 1; j < bts.size(); j++) {
 								num |= (((unsigned long long)bts[j]) << (j * 8 - shiftbits));

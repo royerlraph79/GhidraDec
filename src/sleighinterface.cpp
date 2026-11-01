@@ -308,7 +308,7 @@ string to_string(T t, ios_base& (*f)(ios_base&))
 std::string escapeCStr(std::string input)
 {
 	std::string str;
-	for (int i = 0; i < input.size(); i++) {
+	for (size_t i = 0; i < input.size(); i++) {
 		unsigned char ch = static_cast<unsigned char>(input[i]);
 		if (isprint(ch)) {
 			if (ch == '\\') str += "\\\\";
@@ -1027,7 +1027,7 @@ public:
 	std::string build(std::string space, uintb addr)
 	{
 		std::string str;
-		for (int i = 0; i < strs.size(); i++) {
+		for (size_t i = 0; i < strs.size(); i++) {
 			str += strs[i].pre + "    <seqnum space=\"" + space + "\" offset=\"0x" + to_string(addr, hex) +
 				"\" uniq=\"0x" + to_string(i, hex) + "\"/>\n" + strs[i].post;
 		}
@@ -1247,7 +1247,7 @@ std::string DecompInterface::buildTypeXml(std::vector<TypeInfo>& ti, size_t indn
 			s.push(idx + 1);
 		} else if (typeInfo.metaType == "struct") {
 			std::string strct;
-			for (int i = 0; i < typeInfo.structMembers.size(); i++) { //core types are not type referenced though
+			for (size_t i = 0; i < typeInfo.structMembers.size(); i++) { //core types are not type referenced though
 				strct += std::string(indnt + idx * 2 + 2, ' ') + "<field name=\"" + typeInfo.structMembers[i].name +
 					"\" offset=\"" +
 					std::to_string(typeInfo.structMembers[i].offset) + "\">\n" +
@@ -1673,7 +1673,7 @@ XmlPcodeEmit* DecompInterface::getPcodeSnippet(std::string parsestring,
 	ConstructTpl* tpl = compiler.releaseResult();
 	//parsestring = "";		// No longer need the memory
 	//adjustUniqueBase
-	for (int i = 0; i < tpl->getOpvec().size(); i++) {
+	for (size_t i = 0; i < tpl->getOpvec().size(); i++) {
 		if (tpl->getOpvec()[i]->getOut() != nullptr)
 			adjustUniqueBase(tpl->getOpvec()[i]->getOut());
 		for (int j = 0; j < tpl->getOpvec()[i]->numInput(); j++)
@@ -1879,7 +1879,7 @@ std::string DecompInterface::writeFuncProto(FuncProtoInfo func,
 		}
 	} else {
 		if (func.retType.addr.addr.space == "join") {
-			for (int i = 0; i < func.retType.addr.addr.joins.size(); i++) {
+			for (size_t i = 0; i < func.retType.addr.addr.joins.size(); i++) {
 				if (i != 0) joinString += " ";
 				joinString += "piece" + std::to_string(i + 1) +
 					"=\"" + func.retType.addr.addr.joins[i].addr.space + ":0x" +
@@ -1899,7 +1899,7 @@ std::string DecompInterface::writeFuncProto(FuncProtoInfo func,
 		killbycall += std::string(indnt + 2, ' ') + "</killedbycall>\n";
 	}
 	return std::string(indnt, ' ') + "<prototype extrapop=\"" +
-		(func.extraPop != -1 ? std::to_string(func.extraPop) : std::string("unknown")) +
+		(func.extraPop != ~0ULL ? std::to_string(func.extraPop) : std::string("unknown")) +
 		"\" model=\"" + func.model + "\" modellock=\"" +
 		(func.model != "default" && func.model != "unknown" && lastdm.actionname != "paramid" ? "true" : "false") +
 		(func.model != "default" && func.model != "unknown" && lastdm.actionname != "paramid" && func.syminfo.size() == 0 ?
@@ -2105,7 +2105,7 @@ std::string DecompInterface::writeFunc(SizedAddrInfo addr, std::string funcname,
 		bool readonly = false;
 		std::string joinString;
 		if (it->addr.addr.space == "join") {
-			for (int i = 0; i < it->addr.addr.joins.size(); i++) {
+			for (size_t i = 0; i < it->addr.addr.joins.size(); i++) {
 				if (i != 0) joinString += " ";
 				joinString += "piece" + std::to_string(i + 1) + "=\"" + it->addr.addr.joins[i].addr.space + ":0x" +
 					to_string(it->addr.addr.joins[i].addr.offset) + ":" + std::to_string(it->addr.addr.joins[i].size) + "\"";
@@ -2221,7 +2221,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						callback->getBytes(res.data(), size, AddrInfo{ queryAddr.getSpace()->getName(), queryAddr.getOffset() });
 						std::vector<uchar> dblres;
 						dblres.resize(res.size() * 2);
-						for (int i = 0; i < res.size(); i++) {
+						for (size_t i = 0; i < res.size(); i++) {
 							dblres[i * 2] = (uchar)(((res[i] >> 4) & 0xf) + 65);
 							dblres[i * 2 + 1] = (uchar)((res[i] & 0xf) + 65);
 						}
@@ -2237,7 +2237,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						decoder.closeElement(elemId);
 						std::vector<std::string> userOpNames;
 						trans->getUserOpNames(userOpNames);
-						std::string nm = index >= userOpNames.size() ? "" : userOpNames[index];
+						std::string nm = index < 0 || static_cast<size_t>(index) >= userOpNames.size() ? "" : userOpNames[index];
 						write(query_response_start, sizeof(query_response_start));
 						writeString(nm);
 						write(query_response_end, sizeof(query_response_end));
@@ -2271,7 +2271,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						std::ostringstream packedResponse;
 						PackedEncode encoder(packedResponse);
 						encoder.openElement(ELEM_RESPONSE_COMMENTDB);
-						for (int i = 0; i < comments.size(); i++) {
+						for (size_t i = 0; i < comments.size(); i++) {
 							uint4 commentFlag =
 								comments[i].type == "user1" ? comment_type::user1 :
 								comments[i].type == "user2" ? comment_type::user2 :
@@ -2932,7 +2932,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 					callback->getBytes(res.data(), addr.size, addr.addr);
 					std::vector<uchar> dblres;
 					dblres.resize(res.size() * 2);
-					for (int i = 0; i < res.size(); i++) {
+					for (size_t i = 0; i < res.size(); i++) {
 						dblres[i * 2] = (uchar)(((res[i] >> 4) & 0xf) + 65);
 						dblres[i * 2 + 1] = (uchar)((res[i] & 0xf) + 65);
 					}
@@ -2942,7 +2942,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 					write(byte_end, sizeof(byte_end));
 					write(query_response_end, sizeof(query_response_end));
 					std::string str;
-					for (int i = 0; i < res.size(); i++) {
+					for (size_t i = 0; i < res.size(); i++) {
 						if (i != 0) str += ", ";
 						std::string s = to_string((unsigned int)res[i], std::hex);
 						str += "0x" + std::string(2 - s.size(), '0') + s;
@@ -2983,7 +2983,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						std::string commentStr;
 						std::vector<CommentInfo> comments;
 						callback->getComments(addr, comments);
-						for (int i = 0; i < comments.size(); i++) {
+						for (size_t i = 0; i < comments.size(); i++) {
 							if ((comments[i].type == "header" && (f & comment_type::header) != 0) ||
 								(comments[i].type == "warning" && (f & comment_type::warning) != 0) ||
 								(comments[i].type == "warningheader" &&
@@ -3027,7 +3027,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						ostringstream commentesc;
 						if (rec.data.size() != 0) {
 							int wrap = 0;
-							for (int i = 0; i < rec.data.size(); i++) {
+							for (size_t i = 0; i < rec.data.size(); i++) {
 								int val = (rec.data[i] >> 4) & 0xf;
 								dblres.push_back(val > 9 ? val - 10 + 'a' : (val + '0'));
 								val = rec.data[i] & 0xf;
@@ -3274,7 +3274,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						}
 						std::vector<uchar> dblres;
 						dblres.resize(res.size() * 2 + 2);
-						for (int i = 0; i < res.size(); i++) {
+						for (size_t i = 0; i < res.size(); i++) {
 							dblres[i * 2] = (uchar)(((res[i] >> 4) & 0xf) + 65);
 							dblres[i * 2 + 1] = (uchar)((res[i] & 0xf) + 65);
 						}
@@ -3403,7 +3403,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 					//std::string nm = it == userOpNames.end() ? "" : it->second;
 					std::vector<std::string> userOpNames;
 					trans->getUserOpNames(userOpNames);
-					std::string nm = index >= userOpNames.size() ? "" : userOpNames[index];
+					std::string nm = index < 0 || static_cast<size_t>(index) >= userOpNames.size() ? "" : userOpNames[index];
 					write(query_response_start, sizeof(query_response_start));
 					writeString(nm);
 					write(query_response_end, sizeof(query_response_end));
@@ -3899,7 +3899,7 @@ void DecompInterface::setup(DecompileCallback* cb, std::string sleighfilename,
 	//no good way to do this in a future-proof way as no protected members, no good accessor methods, XML looks the best
 	partmap<Address, TrackedSet> newtrackmap;
 	std::string str;
-	for (int i = 0; i < inits.size(); i++) {
+	for (size_t i = 0; i < inits.size(); i++) {
 		/*str += "<tracked_pointset space=\"" + inits[i].space1 + "\" offset=\"" + std::to_string(inits[i].offset1) + "\" size=\"" +
 			std::to_string(inits[i].offset2 - inits[i].offset1) + "\">" "<set space=\"" + inits[i].space + "\" offset=\"" +
 			std::to_string(inits[i].offset) + "\" val=\"" + std::to_string(inits[i].val) + "\"/>"
@@ -4076,7 +4076,7 @@ void DecompInterface::setup(DecompileCallback* cb, std::string sleighfilename,
 			continue;
 
 		TrackedSet& ts(context->createSet(it->first, next->first));
-		for (int i = 0; i < it->second.size(); i++) {
+		for (size_t i = 0; i < it->second.size(); i++) {
 			ts.push_back(it->second[i]);
 		}
 	}
@@ -4116,7 +4116,7 @@ void DecompInterface::setup(DecompileCallback* cb, std::string sleighfilename,
 				for (childIt = protoChildren.begin(); childIt != protoChildren.end(); ++childIt) {
 					Element* e = *childIt;
 					if (e->getName() == "pcode") {
-						for (size_t i = 0; i < e->getNumAttributes(); i++) {
+						for (int i = 0; i < e->getNumAttributes(); i++) {
 							if (e->getAttributeName(i) == "dynamic") {
 								if (e->getAttributeValue(i) == "true")
 									callMechMap[el->getAttributeValue("name") +
@@ -4151,7 +4151,7 @@ void DecompInterface::setup(DecompileCallback* cb, std::string sleighfilename,
 			for (it = lst.begin(); it != lst.end(); ++it) {
 				Element* e = *it;
 				if (e->getName() == "pcode") {
-					for (size_t i = 0; i < e->getNumAttributes(); i++) {
+					for (int i = 0; i < e->getNumAttributes(); i++) {
 						if (e->getAttributeName(i) == "dynamic") {
 							if (e->getAttributeValue(i) == "true")
 								callMechMap[el->getAttributeValue("name") +
@@ -4215,7 +4215,7 @@ void DecompInterface::setup(DecompileCallback* cb, std::string sleighfilename,
 			for (it = lst.begin(); it != lst.end(); ++it) {
 				Element* e = *it;
 				if (e->getName() == "pcode") { //dynamic="true" means no body will appear only input/output!
-					for (size_t i = 0; i < e->getNumAttributes(); i++) {
+					for (int i = 0; i < e->getNumAttributes(); i++) {
 						if (e->getAttributeName(i) == "dynamic") {
 							if (e->getAttributeValue(i) == "true")
 								callFixupOtherMap[targetop] = new XmlPcodeEmit;
@@ -4610,7 +4610,7 @@ Document* xml_tree_whitespace(istream& i)
 
 string getHasAttributeValue(Element* pEl, const string& nm)
 {
-	for (uint4 i = 0; i < pEl->getNumAttributes(); ++i)
+	for (int4 i = 0; i < pEl->getNumAttributes(); ++i)
 		if (pEl->getAttributeName(i) == nm)
 			return pEl->getAttributeValue(i);
 	return "";
@@ -4621,7 +4621,7 @@ void reduceShortCircuits(std::vector<std::tuple<std::vector<unsigned int>, std::
 	std::vector<std::vector<unsigned int>> succs;
 	succs.resize(blockGraph.size());
 	for (size_t i = 0; i < blockGraph.size(); i++) {
-		for (int j = 0; j < std::get<0>(blockGraph[i]).size(); j++) {
+		for (size_t j = 0; j < std::get<0>(blockGraph[i]).size(); j++) {
 			succs[std::get<0>(blockGraph[i])[j]].push_back(i);
 		}
 	}
@@ -4712,7 +4712,10 @@ void removeUnusedNodes(std::vector<std::tuple<std::vector<unsigned int>, std::st
 			}
 		}
 	}
-	for (size_t i = eraseVec.size() - 1; i != ~0; i--) blockGraph.erase(blockGraph.begin() + eraseVec[i]);
+	for (size_t i = eraseVec.size(); i > 0;) {
+		--i;
+		blockGraph.erase(blockGraph.begin() + eraseVec[i]);
+	}
 }
 
 std::string DecompInterface::convertSourceDoc(Element* el,
@@ -4757,7 +4760,7 @@ std::string DecompInterface::convertSourceDoc(Element* el,
 				}
 				bool bChanged = false;
 				std::string tline;
-				for (int i = 0; i < pairVec.size(); i++) {
+				for (size_t i = 0; i < pairVec.size(); i++) {
 					if (pairVec[i].second == -1) {
 						std::string precline;
 						if (i == pairVec.size() - 1)

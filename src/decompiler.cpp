@@ -865,7 +865,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	}
 	bool isCallableOrphanCodeLabel(ea_t ea, flags_t fl)
 	{
-		if (!is_code(fl) || get_func(ea) != nullptr)
+		if (!is_code(fl) || gd_has_func(ea))
 			return false;
 		std::string name = sanitizeIdaSymbolName(get_name(ea).c_str());
 		return !name.empty() && !isGenericCodeLabelName(name);
@@ -1275,11 +1275,11 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					usedImports[(ea_t)addr.offset] = true;
 					//Ghidra currently has 2 bugs one with restoring CS register if not simulating same segment fixups and the other calling back for external ref function info
 						//16-bit apps have functions defined for imports also...
-					if (isX86() && !inf_is_32bit() && !inf_is_64bit() && get_func((ea_t)addr.offset) != nullptr) msi.kind = KIND_FUNCTION;
+					if (isX86() && !inf_is_32bit() && !inf_is_64bit() && gd_has_func((ea_t)addr.offset)) msi.kind = KIND_FUNCTION;
 					else
 						msi.kind = KIND_EXTERNALREFERENCE;
 				} else {
-					if (knownFunctionEntry || get_func((ea_t)addr.offset) != nullptr) {
+					if (knownFunctionEntry || gd_has_func((ea_t)addr.offset)) {
 						msi.kind = KIND_FUNCTION;
 					} else {
 						auto fl = get_flags((ea_t)addr.offset);
@@ -3495,7 +3495,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				break;
 			if (imports.find(ea) != imports.end())
 				continue;
-			if (get_func(ea) != nullptr)
+			if (gd_has_func(ea))
 				continue;
 
 			flags_t fl = get_flags(ea);

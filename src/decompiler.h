@@ -87,25 +87,25 @@ namespace idaplugin {
 		virtual ~IdaCallback();
 		void executeOnMainThread(std::function<void()> fun, const char* label = "unnamed");
 
-		void launchDecompiler();
-		size_t readDec(void* Buf, size_t MaxCharCount);
-		size_t writeDec(void const* Buf, size_t MaxCharCount);
-		void protocolRecorder(std::string data, bool bWrite);
-		void terminate();
+		void launchDecompiler() override;
+		size_t readDec(void* Buf, size_t MaxCharCount) override;
+		size_t writeDec(void const* Buf, size_t MaxCharCount) override;
+		void protocolRecorder(std::string data, bool bWrite) override;
+		void terminate() override;
 		void interrupt() override;
 		void decompilerWarning(const std::string& message) override;
-		void getInits(std::vector<InitStateItem>& inits);
-		std::string getPcodeInject(int type, std::string name, AddrInfo addr, std::string fixupbase, unsigned long long fixupoffset);
-		void getCPoolRef(const std::vector<unsigned long long>& refs, CPoolRecord& rec);
-		int getBytes(unsigned char* ptr, int size, AddrInfo addr);
-		void getMappedSymbol(AddrInfo addr, MappedSymbolInfo& msi);
-		void getExternInfo(AddrInfo addr, std::string& callName, std::string& modName, FuncProtoInfo& func);
-		void getMetaType(std::string typeName, std::vector<TypeInfo>& typeChain);
+		void getInits(std::vector<InitStateItem>& inits) override;
+		std::string getPcodeInject(int type, std::string name, AddrInfo addr, std::string fixupbase, unsigned long long fixupoffset) override;
+		void getCPoolRef(const std::vector<unsigned long long>& refs, CPoolRecord& rec) override;
+		int getBytes(unsigned char* ptr, int size, AddrInfo addr) override;
+		void getMappedSymbol(AddrInfo addr, MappedSymbolInfo& msi) override;
+		void getExternInfo(AddrInfo addr, std::string& callName, std::string& modName, FuncProtoInfo& func) override;
+		void getMetaType(std::string typeName, std::vector<TypeInfo>& typeChain) override;
 		//colors are Clang-based: "keyword", "comment", "type", "funcname", "var", "const", "param" and "global"
-		std::string emit(std::string type, std::string color, std::string str);
-		void getComments(AddrInfo addr, std::vector<CommentInfo>& comments);
-		std::string getSymbol(AddrInfo addr);
-		std::vector<uchar> getStringData(AddrInfo addr);
+		std::string emit(std::string type, std::string color, std::string str) override;
+		void getComments(AddrInfo addr, std::vector<CommentInfo>& comments) override;
+		std::string getSymbol(AddrInfo addr) override;
+		std::vector<uchar> getStringData(AddrInfo addr) override;
 
 		void getFuncInfo(AddrInfo addr, func_t* f, std::string & name, FuncProtoInfo & func);
 		void getFuncTypeInfo(const tinfo_t& ti, bool paramOnly, FuncProtoInfo& func);

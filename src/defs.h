@@ -1375,6 +1375,7 @@ class RdGlobalInfo
 } // namespace idaplugin
 // IDA 9.4 address-based APIs; older SDK builds keep their existing entry points.
 #if IDA_SDK_VERSION >= 940
+inline bool gd_has_func(ea_t ea) { return get_func_start(ea) != BADADDR; }
 inline ssize_t gd_func_cmt(qstring* out, const func_t* f, bool repeatable) { return f != nullptr ? get_func_cmt_ea(out, f->start_ea, repeatable) : -1; }
 inline bool gd_set_func_cmt(const func_t* f, const char* text, bool repeatable) { return f != nullptr && set_func_cmt_ea(f->start_ea, text, repeatable); }
 inline ea_t gd_func_ranges(rangeset_t* out, const func_t* f) { return f != nullptr ? get_func_ranges_ea(out, f->start_ea) : BADADDR; }
@@ -1394,6 +1395,7 @@ inline bool gd_add_frame(const func_t* f, sval_t locals, ushort saved, asize_t a
 inline bool gd_set_frame_size(const func_t* f, asize_t locals, ushort saved, asize_t args) { return f != nullptr && set_frame_size_ea(f->start_ea, locals, saved, args); }
 inline bool gd_define_stkvar(const func_t* f, const char* name, sval_t off, const tinfo_t& ti, const value_repr_t* repr) { return f != nullptr && define_stkvar_ea(f->start_ea, name, off, ti, repr); }
 #else
+#define gd_has_func(ea) (get_func(ea) != nullptr)
 #define gd_func_cmt get_func_cmt
 #define gd_set_func_cmt set_func_cmt
 #define gd_func_ranges get_func_ranges

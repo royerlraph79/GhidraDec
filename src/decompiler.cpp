@@ -277,7 +277,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		std::vector<RangeInfo> ranges;
 		if (f == nullptr) return ranges;
 		rangeset_t rangeset;
-		if (get_func_ranges(&rangeset, f) != BADADDR) {
+		if (gd_func_ranges(&rangeset, f) != BADADDR) {
 			for (rangeset_t::iterator it = rangeset.begin(); it != rangeset.end(); it++) {
 				if (it->end_ea > it->start_ea) {
 					ranges.push_back(RangeInfo{ space, it->start_ea, it->end_ea - 1 });
@@ -303,7 +303,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 #if IDA_SDK_VERSION >= 850
 		tinfo_t frame;
 		udt_type_data_t udt;
-		if (!get_func_frame(&frame, f) || !frame.get_udt_details(&udt)) return false;
+		if (!gd_func_frame(&frame, f) || !frame.get_udt_details(&udt)) return false;
 		out.reserve(udt.size());
 		for (const udm_t& member : udt) {
 			FrameMemberInfo info;
@@ -335,7 +335,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	{
 		std::vector<FrameMemberInfo> members;
 		if (!getFrameMembers(f, members)) return 0;
-		const ea_t firstarg = frame_off_args(f);
+		const ea_t firstarg = gd_frame_off_args(f);
 		asize_t end = 0;
 		for (const FrameMemberInfo& member : members) {
 			const asize_t memberEnd = (asize_t)(member.soff + member.size);
@@ -611,7 +611,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				segment_t* s = getnseg(j);
 				if (s != nullptr) {
 					qstring qs;
-					if (get_segm_class(&qs, s) != -1 && qs == "CODE") {
+					if (gd_segm_class(&qs, s) != -1 && qs == "CODE") {
 						inits.push_back(InitStateItem{ {"ram", s->start_ea}, {"ram", s->end_ea}, {{"register", regtrans}, (unsigned long)ph.segreg_size}, (unsigned long long)s->sel });
 					}
 				}
@@ -993,12 +993,12 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		}
 		if (f != nullptr && f->frame != BADNODE) { //f->analyzed_sp()
 			std::vector<FrameMemberInfo> frameMembers;
-			func.extraPop += get_frame_retsize(f);
-			ea_t firstarg = frame_off_args(f);
+			func.extraPop += gd_frame_retsize(f);
+			ea_t firstarg = gd_frame_off_args(f);
 			//generalized for any arguments not found in the frame
 			for (size_t i = 0; i < func.syminfo.size(); i++) {
 				if (func.syminfo[i].addr.addr.space == "stack") {
-					func.syminfo[i].addr.addr.offset += firstarg - frame_off_retaddr(f);
+					func.syminfo[i].addr.addr.offset += firstarg - gd_frame_off_retaddr(f);
 				}
 			}
 			getFrameMembers(f, frameMembers);
@@ -1007,21 +1007,21 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				//" r" for return address and " s" for saved registers is a convention that seems to be used in IDA
 				if (!(is_funcarg_off(f, member.soff) || lvar_off(f, member.soff))) continue;
 				std::string nm = member.name;
-				if (frame_off_retaddr(f) == member.soff) continue;
+				if (gd_frame_off_retaddr(f) == member.soff) continue;
 				/*if (nm == " r") {
 					retSize = get_member_size(&frame->members[i]);
 					continue;
 				}*/
-				if (frame_off_savregs(f) == member.soff) continue;
+				if (gd_frame_off_savregs(f) == member.soff) continue;
 				//if (nm == " s") continue;
 				std::vector<SymInfo>::iterator it = nm.empty() ? func.syminfo.end() : std::find_if(func.syminfo.begin(), func.syminfo.end(), [&nm](SymInfo it) { return it.pi.name == nm; });
-				unsigned long long offset = member.soff - frame_off_retaddr(f);// - firstarg;
+				unsigned long long offset = member.soff - gd_frame_off_retaddr(f);// - firstarg;
 				if (it == func.syminfo.end()) {
 					//if no name, offset is from 0, so use arg offset
 					//msg("Offset: %llX\n", offset);
 					it = std::find_if(func.syminfo.begin(), func.syminfo.end(), [offset](SymInfo it) { return it.pi.name == "" && it.addr.addr.space == "stack" && it.addr.addr.offset == offset; });
 				}
-				//unsigned long long reloffs = frame->members[i].get_soff() - frame_off_retaddr(f); // - f->frsize - f->frregs; //frame seems to always be relative to return address
+				//unsigned long long reloffs = frame->members[i].get_soff() - gd_frame_off_retaddr(f); // - f->frsize - f->frregs; //frame seems to always be relative to return address
 				if (it != func.syminfo.end()) {
 					if (it->pi.name == "") it->pi.name = nm;
 					it->addr.addr.space = "stack";
@@ -1046,7 +1046,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					}
 					coreTypeUsed[typ == -1 ? 1 : typ] = true;
 				}
-				func.syminfo.push_back(SymInfo{ {nm, typeChain}, {{"stack", member.soff - frame_off_retaddr(f)}, member.size},
+				func.syminfo.push_back(SymInfo{ {nm, typeChain}, {{"stack", member.soff - gd_frame_off_retaddr(f)}, member.size},
 					is_funcarg_off(f, member.soff) ? (int)curArgs++ : -1 }); //frame->members[i].get_soff() >= firstarg or f->frsize - f->frregs
 			}
 		} else {
@@ -1078,7 +1078,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				for (ea_t ea = get_first_cref_to((ea_t)addr.offset); ea != BADADDR;) {
 					//if points is nullptr, IDA wont retrieve and fill it unless get_spd or the like is called with non-null pointer func_t first
 					func_t* ft = get_func(ea); //IDA will not retrieve spd information except for function head as per decompiling ida64.dll where after it uses ea2node, netnode_qgetblob and then unpack_dq to retrieve it
-					//get_spd(f, f->start_ea); //passing null unlike API documentation will not yield useful results if not already populated
+					//gd_spd(f, f->start_ea); //passing null unlike API documentation will not yield useful results if not already populated
 					/*if (f != nullptr && f->points != nullptr) {
 						for (int i = 0; i < f->pntqty; i++) {
 							if (f->points[i].ea == get_item_end(ea)) {
@@ -1086,7 +1086,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 							}
 						}
 					}*/
-					histogram[get_spd(ft, get_item_end(ea)) - get_spd(ft, ea)]++;
+					histogram[gd_spd(ft, get_item_end(ea)) - gd_spd(ft, ea)]++;
 					ea = get_next_cref_to((ea_t)addr.offset, ea);
 				}
 				std::map<sval_t, int>::iterator max =
@@ -1097,7 +1097,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			/*for (ea_t ea = get_first_cref_to(f->start_ea); ea != BADADDR; ea = get_next_cref_to(f->start_ea, ea)) {
 				func_t* fp = get_func(ea);
 				if (fp != nullptr) {
-					get_spd(fp, fp->start_ea);
+					gd_spd(fp, fp->start_ea);
 					if (definedFuncs.find(fp->start_ea) == definedFuncs.end()) continue;
 					if (fp->points != nullptr) {
 						for (int i = 0; i < fp->pntqty; i++) { //can build a histogram and take the winner
@@ -1921,13 +1921,13 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			func_t* f = get_func((ea_t)addr.offset);
 			if (f != nullptr) {
 				qstring qs;
-				if (get_func_cmt(&qs, f, false) != -1)
+				if (gd_func_cmt(&qs, f, false) != -1)
 					comments.push_back(CommentInfo{ addr, "warningheader", qs.c_str() });
-				if (get_func_cmt(&qs, f, true) != -1)
+				if (gd_func_cmt(&qs, f, true) != -1)
 					comments.push_back(CommentInfo{ addr, "warningheader", qs.c_str() });
 			}
 			rangeset_t rangeset;
-			get_func_ranges(&rangeset, f);
+			gd_func_ranges(&rangeset, f);
 			for (rangeset_t::iterator it = rangeset.begin(); it != rangeset.end(); it++) { //there should be a better way to do this besides going through individual instructions?
 				for (ea_t offs = it->start_ea; offs < it->end_ea;) { //is_code(offs) should always be true
 					//color_t clr; //get_any_indented_cmt is missing from library
@@ -2422,7 +2422,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			getn_selector(&base, &ea, (int)i);
 			segment_t* seg = get_segm_by_sel(base);
 			qstring qs;
-			get_segm_name(&qs, seg);
+			gd_segm_name(&qs, seg);
 			str += "Selector Base: 0x" + to_string(base, std::hex) + " Addr: 0x" + to_string(ea, std::hex) + " Seg: " + std::string(qs.c_str()) + "\n";
 		}
 		if (num != 0) str += "\n";
@@ -2431,10 +2431,10 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		for (size_t i = 0; i < num; i++) {
 			segment_t* seg = getnseg((int)i);
 			qstring qs, qc, qcr, qcls;
-			get_segm_name(&qs, seg);
-			get_segment_cmt(&qc, seg, false);
-			get_segment_cmt(&qcr, seg, false);
-			get_segm_class(&qcls, seg);
+			gd_segm_name(&qs, seg);
+			gd_segment_cmt(&qc, seg, false);
+			gd_segment_cmt(&qcr, seg, false);
+			gd_segm_class(&qcls, seg);
 			str += "Segment: " + std::string(qs.c_str()) + " Cmt: " + std::string(qc.c_str()) + " CmtRpt: " + std::string(qcr.c_str()) + " Class: " + std::string(qcls.c_str()) +
 				" Sel: 0x" + to_string(seg->sel, std::hex) + " Align: 0x" + to_string((uint)seg->align, std::hex) + " Bitness: 0x" + to_string((uint)seg->bitness, std::hex) +
 				" Comb: 0x" + to_string((uint)seg->comb, std::hex) + " Perm: 0x" + to_string((uint)seg->perm, std::hex) + " Flags: 0x" + to_string(seg->flags, std::hex) +
@@ -2506,13 +2506,13 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			if (f->frame != BADNODE) {
 				std::vector<FrameMemberInfo> frameMembers;
 				getFrameMembers(f, frameMembers);
-				str += "Frame members: 0x" + to_string(frameMembers.size(), std::hex) + " Frame size: 0x" + to_string(get_frame_size(f), std::hex) + " LocOffs: 0x" + to_string(frame_off_lvars(f), std::hex) +
-					" SaveOffs: 0x" + to_string(frame_off_savregs(f), std::hex) + " RetOffs: 0x" + to_string(frame_off_retaddr(f), std::hex) + " RetSize: 0x" + to_string(get_frame_retsize(f), std::hex) + " ArgOffs: 0x" + to_string(frame_off_args(f), std::hex) + "\n";
+				str += "Frame members: 0x" + to_string(frameMembers.size(), std::hex) + " Frame size: 0x" + to_string(gd_frame_size(f), std::hex) + " LocOffs: 0x" + to_string(gd_frame_off_lvars(f), std::hex) +
+					" SaveOffs: 0x" + to_string(gd_frame_off_savregs(f), std::hex) + " RetOffs: 0x" + to_string(gd_frame_off_retaddr(f), std::hex) + " RetSize: 0x" + to_string(gd_frame_retsize(f), std::hex) + " ArgOffs: 0x" + to_string(gd_frame_off_args(f), std::hex) + "\n";
 				for (const FrameMemberInfo& member : frameMembers) {
 					str += "Member name: " + member.name + " Offset: 0x" + to_string(member.soff, std::hex) + "\n";
 				}
 			}
-			//if (f->points == nullptr) get_spd(f, f->start_ea);
+			//if (f->points == nullptr) gd_spd(f, f->start_ea);
 			/*if (f->points != nullptr) {
 				for (int i = 0; i < f->pntqty; i++) {
 					sval_t s = f->points[i].spd;
@@ -2522,8 +2522,8 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			for (ea_t i = get_first_cref_to(f->start_ea); i != BADADDR;)
 			{
 				func_t* fp = get_func(i);
-				if (fp->points == nullptr) get_spd(fp, fp->start_ea);
-				str += "CdXref: 0x" + to_string(i, std::hex) + " SpDelta: " + to_string(get_spd(fp, get_item_end(i)), std::hex) +
+				if (fp->points == nullptr) gd_spd(fp, fp->start_ea);
+				str += "CdXref: 0x" + to_string(i, std::hex) + " SpDelta: " + to_string(gd_spd(fp, get_item_end(i)), std::hex) +
 					" SpEfctvDelta: " + to_string(get_effective_spd(fo, get_item_end(i)), std::hex) + " SpDelta: " + to_string(get_sp_delta(fp, get_item_end(i)), std::hex) + "\n";
 				i = get_next_cref_to(f->start_ea, i);
 				//str += (i == BADADDR) ? "\n" : " ";
@@ -4242,7 +4242,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				newti.create_func(ftd, BT_FUNC | (ftd.get_call_method() >> 2));
 				apply_tinfo(ea, newti, TINFO_DEFINITE); //if a structure name has the function name, seems to be causing a warning message - very long standing issue in IDA apparently
 				if (bFrameChange) {
-					del_frame(f);
+					gd_del_frame(f);
 					ph.create_func_frame(f);
 				}
 			}
@@ -4530,10 +4530,10 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 							argsize += (asize_t)paramInfo.syminfo[i].pi.ti.begin()->size;
 					}
 					if (hasFrame) {
-						set_frame_size(f, frsize, f->frregs /*frame_off_savregs(f) - frame_off_lvars(f)*/, argsize);
+						gd_set_frame_size(f, frsize, f->frregs /*gd_frame_off_savregs(f) - gd_frame_off_lvars(f)*/, argsize);
 					} else {
 						if (frsize != 0 || argsize != 0) {
-							add_frame(f, frsize, f->frregs, argsize);
+							gd_add_frame(f, frsize, f->frregs, argsize);
 							hasFrame = true;
 						}
 					}
@@ -4563,16 +4563,16 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 							tinfo_t ti;
 							typeInfoToIDA(0, paramInfo.syminfo[i].pi.ti, ti);
 #if IDA_SDK_VERSION >= 850
-							define_stkvar(f, paramInfo.syminfo[i].pi.name.c_str(),
-								(sval_t)(paramInfo.syminfo[i].addr.addr.offset - (frame_off_args(f) - frame_off_retaddr(f))),
+							gd_define_stkvar(f, paramInfo.syminfo[i].pi.name.c_str(),
+								(sval_t)(paramInfo.syminfo[i].addr.addr.offset - (gd_frame_off_args(f) - gd_frame_off_retaddr(f))),
 								ti, nullptr);
 #else
 							opinfo_t oi = {};
 							flags_t flag;
 							size_t sz; //size of ti
 							get_idainfo_by_type(&sz, &flag, &oi, ti, nullptr);
-							define_stkvar(f, paramInfo.syminfo[i].pi.name.c_str(),
-								(sval_t)(paramInfo.syminfo[i].addr.addr.offset - (frame_off_args(f) - frame_off_retaddr(f))),
+							gd_define_stkvar(f, paramInfo.syminfo[i].pi.name.c_str(),
+								(sval_t)(paramInfo.syminfo[i].addr.addr.offset - (gd_frame_off_args(f) - gd_frame_off_retaddr(f))),
 								flag, &oi, (asize_t)paramInfo.syminfo[i].addr.size);
 #endif
 						} else if (paramInfo.syminfo[i].addr.addr.space == "ram") {

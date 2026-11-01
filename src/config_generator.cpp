@@ -259,7 +259,7 @@ void ConfigGenerator::generateFunctions()
 		ccFnc.returnType.setLlvmIr("i32");
 
 		qstring qCmt;
-		if (get_func_cmt(&qCmt, fnc, false) > 0)
+		if (gd_func_cmt(&qCmt, fnc, false) > 0)
 		{
 			ccFnc.setComment(qCmt.c_str());
 		}

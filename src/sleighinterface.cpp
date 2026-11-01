@@ -774,7 +774,7 @@ static bool readJvmSwitchInfo(DecompileCallback* callback, const AddrInfo& addr,
 	size_t padding = (4 - ((bytecodeOffset + 1) & 3)) & 3;
 	size_t headerSize = opcode == 0xaa ? 1 + padding + 12 : 1 + padding + 8;
 	std::vector<uchar> header(headerSize);
-	if (callback->getBytes(header.data(), static_cast<int>(header.size()), addr) != header.size())
+	if (callback->getBytes(header.data(), static_cast<int>(header.size()), addr) != static_cast<int>(header.size()))
 		return false;
 
 	size_t pos = 1 + padding;
@@ -2811,7 +2811,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						if (ts != nullptr) {
 							size_t trackedCount = 0;
 							for (TrackedSet::const_iterator it = ts->begin(); it != ts->end(); it++) {
-								if (it->loc.space == nullptr || it->loc.offset == -1 || it->loc.size == 0) {
+								if (it->loc.space == nullptr || it->loc.offset == ~0ULL || it->loc.size == 0) {
 									callback->protocolRecorder("query(command_gettrackedregisters skipInvalid)", false);
 									continue;
 								}
@@ -3375,7 +3375,7 @@ std::vector<uchar> DecompInterface::readResponse() {
 						std::string track;
 						if (ts != nullptr) {
 							for (TrackedSet::const_iterator it = ts->begin(); it != ts->end(); it++) {
-								if (it->loc.space != nullptr && it->loc.offset != -1)
+								if (it->loc.space != nullptr && it->loc.offset != ~0ULL)
 									track += "  <set space=\"" + it->loc.space->getName() + "\" offset=\"0x" +
 										to_string(it->loc.offset, hex) +
 										"\" size=\"" + std::to_string(it->loc.size) +
@@ -4242,7 +4242,7 @@ void DecompInterface::setup(DecompileCallback* cb, std::string sleighfilename,
 			for (it = lst.begin(); it != lst.end(); ++it) {
 				Element* e = *it;
 				if (e->getName() == "range") {
-					size_t i;
+					int i;
 					for (i = 0; i < e->getNumAttributes(); i++) {
 						if (e->getAttributeName(i) == "first" || e->getAttributeName(i) == "last") break;
 					}
@@ -4636,12 +4636,12 @@ void reduceShortCircuits(std::vector<std::tuple<std::vector<unsigned int>, std::
 					if (succs[i][j] == succs[std::get<0>(blockGraph[i])[0]][k]) break;
 				}
 				if (k != succs[std::get<0>(blockGraph[i])[0]].size()) continue;
-				else if (foundj == -1) foundj = j;
+				else if (foundj == static_cast<size_t>(-1)) foundj = j;
 				else {
 					foundj = -1; break;
 				}
 			}
-			if (foundj != -1 && succs[i][foundj] != std::get<0>(blockGraph[i])[0]) { //if successor found is also predecessor it matches a do { if (cond) break; ... }, any other undetectable false patterns?
+			if (foundj != static_cast<size_t>(-1) && succs[i][foundj] != std::get<0>(blockGraph[i])[0]) { //if successor found is also predecessor it matches a do { if (cond) break; ... }, any other undetectable false patterns?
 				std::get<0>(blockGraph[succs[i][foundj]]).push_back(std::get<0>(blockGraph[i])[0]);
 				succs[std::get<0>(blockGraph[i])[0]].push_back(succs[i][foundj]);
 				for (size_t j = 0; j < succs[std::get<0>(blockGraph[i])[0]].size(); j++) {
@@ -4761,9 +4761,9 @@ std::string DecompInterface::convertSourceDoc(Element* el,
 				bool bChanged = false;
 				std::string tline;
 				for (size_t i = 0; i < pairVec.size(); i++) {
-					if (pairVec[i].second == -1) {
+					if (pairVec[i].second == ~0u) {
 						std::string precline;
-						if (i == pairVec.size() - 1)
+						if (i + 1 == pairVec.size())
 							precline = displayXml.substr(pairVec[i].first);
 						else
 							precline = displayXml.substr(pairVec[i].first, pairVec[i + 1].first - pairVec[i].first);
@@ -4786,21 +4786,21 @@ std::string DecompInterface::convertSourceDoc(Element* el,
 					} else if (idx == pairVec[i].second) {
 					} else {
 						bool bLinked = std::find(std::get<0>(blockGraph[pairVec[i].second]).begin(), std::get<0>(blockGraph[pairVec[i].second]).end(), lastsib) != std::get<0>(blockGraph[pairVec[i].second]).end();
-						if (lastsib != -1 && bLinked && idx != lastsib) {
+						if (lastsib != ~0u && bLinked && idx != lastsib) {
 							idx = lastsib;
 							bChanged = true;
 						}
 						std::get<1>(blockGraph[idx]) += tline;
 						tline.clear();
-						if (lastsib != -1 && bLinked) std::get<1>(blockGraph[idx]) += callback->emit("comment", "comment", "\n" + spc + "  " "//" + std::to_string(pairVec[i].second));
+						if (lastsib != ~0u && bLinked) std::get<1>(blockGraph[idx]) += callback->emit("comment", "comment", "\n" + spc + "  " "//" + std::to_string(pairVec[i].second));
 						lastsib = pairVec[i].second;
 					}
 				}
 				std::get<1>(blockGraph[idx]) += tline;
-				//if (lastsib != -1 && !tline.empty()) blockGraph[lastsib].second += callback->emit("comment", "comment", "\n" + spc + "  " "//" + std::to_string(idx));
+				//if (lastsib != ~0u && !tline.empty()) blockGraph[lastsib].second += callback->emit("comment", "comment", "\n" + spc + "  " "//" + std::to_string(idx));
 				//if leaving a parent into the same parent, assume a sibling situation has occurred
 				if (!blockPath.empty()) {
-					if (lastsib != -1 && tline.empty() && bChanged) blockPath.top().second.push_back(std::pair<size_t, unsigned int>(displayXml.size(), lastsib));
+					if (lastsib != ~0u && tline.empty() && bChanged) blockPath.top().second.push_back(std::pair<size_t, unsigned int>(displayXml.size(), lastsib));
 					blockPath.top().second.push_back(std::pair<size_t, unsigned int>(displayXml.size(), -1));
 					//if (blockPath.top().first != lastsib)
 					//	blockGraph[idx].second += callback->emit("comment", "comment", "\n" + spc + "  " "//" + std::to_string(blockPath.top().first));
@@ -4913,7 +4913,7 @@ std::string DecompInterface::regToSpacebase(int regidx)
 		if (as->getType() == IPTR_SPACEBASE && as->numSpacebase() == 1) {
 			//as->getSpacebaseFull(0) not yet truncated and would return incorrect register offset
 			const VarnodeData& vd = as->getSpacebase(0);
-			if (vd.space->getName() == "register" && vd.offset == regidx) {
+			if (vd.space->getName() == "register" && regidx >= 0 && vd.offset == static_cast<uintb>(regidx)) {
 				return as->getName();
 			}
 		}

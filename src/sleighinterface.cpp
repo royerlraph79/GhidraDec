@@ -403,10 +403,6 @@ public:
 };
 
 namespace PackedPcodeTag {
-	constexpr uchar unimpl_tag = 0x20;
-	constexpr uchar inst_tag = 0x21;
-	constexpr uchar op_tag = 0x22;
-	constexpr uchar void_tag = 0x23;
 	constexpr uchar spaceid_tag = 0x24;
 	constexpr uchar addrsz_tag = 0x25;
 	constexpr uchar end_tag = 0x60;
@@ -1249,7 +1245,7 @@ std::string DecompInterface::buildTypeXml(std::vector<TypeInfo>& ti, size_t indn
 		}
 		TypeInfo& typeInfo = ti.at(idx);
 		//if (typeInfo == terminate) return ""; //termination happens at appropriate place implicitly
-		if (typeInfo.size == -1) {
+		if (typeInfo.size == ~0ULL) {
 			/*int i;
 			for (i = 0; i < numDefCoreTypes; i++) {
 				if (defaultCoreTypes[i].name == typeInfo.typeName) break;

@@ -193,7 +193,7 @@ bool readConfigFile(RdGlobalInfo& rdgi)
 		int idx = 0;
 		std::vector<std::string> split({ std::string() });
 		const uchar delim = ';';
-		std::for_each(qs.begin(), qs.end(), [&idx, &split, delim](uchar ch) { if (ch == delim) { idx++; split.push_back(std::string()); } else if (ch != 0) split[idx].push_back(ch); });
+		std::for_each(qs.begin(), qs.end(), [&idx, &split](uchar ch) { if (ch == delim) { idx++; split.push_back(std::string()); } else if (ch != 0) split[idx].push_back(ch); });
 		rdgi.customPspec = split[0];
 		rdgi.customCspec = split[1];
 		rdgi.customSlafile = split[2];

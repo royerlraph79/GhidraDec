@@ -141,6 +141,52 @@ def patch_filemanage(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+# Reproducible, source-level fixes for Ghidra 12.2's bundled decompiler.
+# These are applied in-place to the generated subset (no extra source tree or backup).
+_GHIDRA_12_2_WARNING_PATCHES = {
+    "address.hh": (
+        ("SeqNum(const SeqNum &op2) : pc(op2.pc) { uniq = op2.uniq; }", "SeqNum(const SeqNum &op2) : pc(op2.pc) { uniq = op2.uniq; }\n  SeqNum &operator=(const SeqNum &op2) = default;", 1),
+        ("if (sa >= 8*sizeof(uintb)) return 0;", "if (sa >= 8 * static_cast<int4>(sizeof(uintb))) return 0;", 2),
+    ),
+    "semantics.hh": (
+        ("type=op2.type; value=op2.value; value_real=op2.value_real; select=op2.select; }", "type=op2.type; value=op2.value; value_real=op2.value_real; select=op2.select; }\n  ConstTpl &operator=(const ConstTpl &op2) = default;", 1),
+    ),
+    "marshal.hh": (
+        ("while(pos.end - pos.current <= skip) {", "while(static_cast<uint8>(pos.end - pos.current) <= skip) {", 1),
+    ),
+    "space.cc": (
+        ("  uint4 sizesum = 0;\n", "", 1),
+        ("    sizesum += vdat.size;\n", "", 1),
+        ("    if (pos > MAX_PIECES)", "    if (pos < 0 || pos > MAX_PIECES)", 1),
+        ("    while(pieces.size() <= pos)", "    while(pieces.size() <= static_cast<size_t>(pos))", 1),
+    ),
+}
+
+
+def apply_ghidra_warning_patches(decompile_dir: Path, version: str) -> None:
+    if version != "12.2":
+        return
+    for filename, replacements in _GHIDRA_12_2_WARNING_PATCHES.items():
+        path = decompile_dir / filename
+        if not path.is_file():
+            raise SystemExit(f"Missing Ghidra 12.2 source to patch: {path}")
+        original = path.read_text(encoding="utf-8")
+        updated = original
+        for old, new, expected_count in replacements:
+            actual_count = updated.count(old)
+            if actual_count == 0 and updated.count(new) == expected_count:
+                continue  # Already patched; avoid rewriting files on subsequent builds.
+            if actual_count != expected_count:
+                raise SystemExit(
+                    f"Unexpected Ghidra 12.2 source layout in {path}: "
+                    f"expected {expected_count} matches, found {actual_count} for {old!r}"
+                )
+            updated = updated.replace(old, new)
+        if updated != original:
+            path.write_text(updated, encoding="utf-8")
+            print(f"[ghidradec-deps] applied Ghidra 12.2 compiler fixes to {filename}")
+
+
 def ensure_ghidra_sources(args: argparse.Namespace) -> None:
     manifest = load_manifest()
     version = args.version or manifest["project"]["defaultGhidraVersion"]
@@ -159,6 +205,7 @@ def ensure_ghidra_sources(args: argparse.Namespace) -> None:
     matching_version = isinstance(current_stamp, dict) and current_stamp.get("version") == version
     reusable = current_stamp == stamp or (matching_version and not explicit_source)
     if reusable and (decompile_dir / "sleigh.cc").exists() and not args.refresh:
+        apply_ghidra_warning_patches(decompile_dir, version)
         print(f"[ghidradec-deps] Ghidra decompiler subset already exists in {output_dir}")
         return
     if args.source_dir:
@@ -194,6 +241,7 @@ def ensure_ghidra_sources(args: argparse.Namespace) -> None:
             shutil.rmtree(target)
         shutil.copytree(zlib_dir, target)
 
+    apply_ghidra_warning_patches(decompile_dir, version)
     stamp_path.write_text(json.dumps(stamp, indent=2) + "\n", encoding="utf-8")
     print(f"[ghidradec-deps] refreshed Ghidra decompiler subset from {cpp_dir} into {output_dir}")
 

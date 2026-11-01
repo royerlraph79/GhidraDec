@@ -747,7 +747,6 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			//paging strategy for easy lookup - just like the processor utilizes
 			bool bFetch = false;
 			unsigned long long page = addr.offset & (~(CACHEPAGESIZE - 1)),
-				firstPage = page,
 				pgoffs = addr.offset & (CACHEPAGESIZE - 1);
 			do {
 				if (byteCache.find((ea_t)page) == byteCache.end()) {
@@ -1422,7 +1421,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 	}
 	void IdaCallback::getFuncTypeInfo(const tinfo_t & ti, bool paramOnly, FuncProtoInfo& func)
 	{
-		asize_t retSize = 0;
+		
 		func_type_data_t ftd;
 		if (ti.is_func() && ti.get_func_details(&ftd)) { //GTD_NO_ARGLOCS
 			//(ftd.flags & FTI_SPOILED) != 0
@@ -1526,7 +1525,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 				std::vector<TypeInfo> nextType;
 				if (is_func(get_flags(u))) {
 					usedFuncs[u] = true;
-					bool bFuncTinfo = getFuncByGuess(u, ti);
+					getFuncByGuess(u, ti);
 					getType(ti, nextType, false);
 					if (funcProtoInfos.find(u) == funcProtoInfos.end()) {
 						FuncProtoInfo innerFunc;
@@ -1557,7 +1556,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 		} else {
 			unsigned long long size = get_item_size((ea_t)offset);
 			//if (is_unknown(offset)) size = next_head(offset, BADADDR) - offset;
-			bool foundPtr = false;
+			
 			if ((inf_cc_cm & CM_MASK) == CM_N32_F48 && size == 4) {
 				uval_t u;
 				if (!get_data_value(&u, (ea_t)offset, (asize_t)size)) return false;
@@ -1568,7 +1567,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 					std::vector<TypeInfo> nextType;
 					if (is_func(get_flags(u))) {
 						usedFuncs[u] = true;
-						bool bFuncTinfo = getFuncByGuess(u, ti);
+						getFuncByGuess(u, ti);
 						getType(ti, nextType, false);
 						if (funcProtoInfos.find(u) == funcProtoInfos.end()) {
 							FuncProtoInfo innerFunc;
@@ -1809,7 +1808,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			typeChain.push_back(typeinf);
 			getType(ai.elem_type, typeChain, false);
 		} else if (typeinf.metaType == "code") {
-			asize_t retSize = 0;
+			
 			func_type_data_t ftd;
 			ptr_type_data_t pt;
 			if (ti.is_funcptr()) {
@@ -2088,7 +2087,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			s.pop();
 			const TypeInfo& ti = types.at(idx);
 			//if (typeInfo == terminate) return ""; //termination happens at appropriate place implicitly
-			if (ti.size == -1) {
+			if (ti.size == ~0ULL) {
 				usedT[ti.typeName] = true;
 				continue;
 			}
@@ -2741,7 +2740,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 						if (utd[i].type.is_bitfield()) {
 							bitfield_type_data_t btd;
 							utd[i].type.get_bitfield_details(&btd);
-							uint64 val = 0;
+							
 							size_t totalSize = (size_t)((utd[i].offset + btd.width + 7) / 8 - utd[i].offset / 8);
 							std::vector<uchar> bts(totalSize);
 							get_bytes(bts.data(), totalSize, std::get<0>(item));
@@ -2843,7 +2842,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 			}
 			const TypeInfo& ti = types.at(item.second);
 			std::string str;
-			if (ti.size == -1) { //typeref
+			if (ti.size == ~0ULL) { //typeref
 				tinfo_t tinf;
 				tinf.get_named_type(get_idati(), ti.typeName.c_str());
 				std::vector<TypeInfo> nextChain;
@@ -4558,12 +4557,12 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),  
 						} else if (paramInfo.syminfo[i].addr.addr.space == "stack") {
 							tinfo_t ti;
 							typeInfoToIDA(0, paramInfo.syminfo[i].pi.ti, ti);
-							opinfo_t oi = {};
 #if IDA_SDK_VERSION >= 850
 							define_stkvar(f, paramInfo.syminfo[i].pi.name.c_str(),
 								(sval_t)(paramInfo.syminfo[i].addr.addr.offset - (frame_off_args(f) - frame_off_retaddr(f))),
 								ti, nullptr);
 #else
+							opinfo_t oi = {};
 							flags_t flag;
 							size_t sz; //size of ti
 							get_idainfo_by_type(&sz, &flag, &oi, ti, nullptr);
@@ -5026,7 +5025,7 @@ void closeBlockGraph(RdGlobalInfo* di, TWidget* closingWidget)
 void displayBlockGraph(RdGlobalInfo* di, ea_t ea)
 {
 	if ((di->viewFeatures & VIEW_FEATURE_GRAPH) == 0) return;
-	di->idacb->executeOnMainThread([di, ea]() {
+	di->idacb->executeOnMainThread([di]() {
 		closeBlockGraph(di);
 		if (di->decompiledFunction == nullptr)
 			return;

@@ -101,13 +101,13 @@ struct SizedAddrInfo;
 struct AddrInfo
 {
 	std::string space;
-	unsigned long long offset;
-	std::vector<SizedAddrInfo> joins; //for join space only
+	unsigned long long offset = 0;
+	std::vector<SizedAddrInfo> joins = {}; //for join space only
 };
 struct SizedAddrInfo
 {
 	AddrInfo addr;
-	unsigned long long size;
+	unsigned long long size = 0;
 	//std::string regName;
 };
 struct InitStateItem
@@ -115,7 +115,7 @@ struct InitStateItem
 	AddrInfo addr1;
 	AddrInfo addr2;
 	SizedAddrInfo addr;
-	unsigned long long val;
+	unsigned long long val = 0;
 };
 
 struct DecMode
@@ -132,9 +132,9 @@ struct CoreType
 	std::string name;
 	int size;
 	std::string metaType;
-	bool isChar;
-	bool isUtf;
-	unsigned long long id; //Datatype::hashName
+	bool isChar = false;
+	bool isUtf = false;
+	unsigned long long id = 0; //Datatype::hashName
 };
 
 extern const Options defaultOptions;
@@ -162,23 +162,23 @@ struct SymInfo
 {
 	ParamInfo pi;
 	SizedAddrInfo addr; //"ram", "stack", "join" but then need offsets for something like piece1="register:0x8:4" piece2="register:0x0:4"
-	int argIndex; //-1 if local variable
-	RangeInfo range; //for register space only with locals (for arguments, will automatically specify one less than the start address of the function)
+	int argIndex = -1; //-1 if local variable
+	RangeInfo range = {}; //for register space only with locals (for arguments, will automatically specify one less than the start address of the function)
 };
 struct FuncProtoInfo
 {
-	bool isInline;
-	bool isNoReturn;
-	unsigned long long extraPop; //-1 for unknown
+	bool isInline = false;
+	bool isNoReturn = false;
+	unsigned long long extraPop = ~0ULL; //-1 for unknown
 	std::string model; //unknown, default, __fastcall, __stdcall, __cdecl, __thiscall, __vectorcall, __pascal
-	bool dotdotdot;
-	bool customStorage;
-	bool hasThis;
-	bool isConstruct;
-	bool isDestruct;
-	SymInfo retType;
-	std::vector<SymInfo> syminfo;
-	std::vector<SizedAddrInfo> killedByCall;
+	bool dotdotdot = false;
+	bool customStorage = false;
+	bool hasThis = false;
+	bool isConstruct = false;
+	bool isDestruct = false;
+	SymInfo retType = {};
+	std::vector<SymInfo> syminfo = {};
+	std::vector<SizedAddrInfo> killedByCall = {};
 };
 struct StructMemberInfo;
 struct ParamInfo;
@@ -194,11 +194,11 @@ struct TypeInfo
 	bool isUtf = false; //wchar*
 	bool isChar = false; //char
 	unsigned long long arraySize = 0; //array
-	std::vector<StructMemberInfo> structMembers; //struct
-	std::vector<std::pair<std::string, unsigned long long>> enumMembers; //enum
-	FuncProtoInfo funcInfo; //code
+	std::vector<StructMemberInfo> structMembers = {}; //struct
+	std::vector<std::pair<std::string, unsigned long long>> enumMembers = {}; //enum
+	FuncProtoInfo funcInfo = {}; //code
 
-	bool isReadOnly; //external use only for all except functions, structures, array - decompiler does not need - it tracks symbols not types better to create derived struct
+	bool isReadOnly = false; //external use only for all except functions, structures, array - decompiler does not need - it tracks symbols not types better to create derived struct
 };
 struct StructMemberInfo
 {
@@ -224,19 +224,19 @@ struct MappedSymbolInfo
 {
 	MappedSymbolKinds kind;
 	
-	bool readonly; //data, label, hole
-	bool volatil; //data, label, hole
+	bool readonly = false; //data, label, hole
+	bool volatil = false; //data, label, hole
 	
 	std::string name; //function, data, extref, symbol
 	
 	std::vector<TypeInfo> typeChain; //data
 
-	unsigned long long entryPoint; //function
+	unsigned long long entryPoint = 0; //function
 
 	std::vector<RangeInfo> ranges; //function not at entry point
 
 	//function at entry point:
-	unsigned long long size; //minimally 1 or maximally must be contiguous block from entry point
+	unsigned long long size = 0; //minimally 1 or maximally must be contiguous block from entry point
 	FuncProtoInfo func;
 };
 enum CPoolTag
@@ -317,7 +317,7 @@ class DecompInterface
 
 	int archId = -1;              // architecture id for decomp process
 	int maxResultSizeMBYtes = 50; // maximum result size in MBytes to allow from decompiler
-	bool showNamespace;        // whether to show namespaces for functions
+	bool showNamespace = false;        // whether to show namespaces for functions
 
 	// Initialization state
 	DecMode lastdm = { "decompile", true, true, false, false };
